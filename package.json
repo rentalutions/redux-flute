@@ -1,0 +1,38 @@
+{
+  "name": "flute",
+  "version": "1.0.0",
+  "description": "Smart front-end data cache manager",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dist": "babel -d dist src",
+    "dist-watch": "babel -w -d dist src",
+    "lint": "blint --browser --ecmaVersion 6 --forbidSemicolons src || true",
+    "prepublish": "rimraf dist && babel -d dist src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyleramirez/flute.git"
+  },
+  "keywords": [
+    "models",
+    "cache"
+  ],
+  "author": "Kyle Ramirez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kyleramirez/flute/issues"
+  },
+  "homepage": "https://github.com/kyleramirez/flute#readme",
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.18.2",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-stage-0": "^6.16.0"
+  },
+  "dependencies": {
+    "es6-promise": "^4.0.5",
+    "sugar-inflections": "^2.0.0",
+    "whatwg-fetch": "^1.0.0"
+  }
+}
