@@ -5,10 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "babel -d dist src",
-    "dist-watch": "babel -w -d dist src",
-    "lint": "blint --browser --ecmaVersion 6 --forbidSemicolons src || true",
-    "prepublish": "rimraf dist && babel -d dist src"
+    "dist": "babel --presets es2015,stage-0 -d dist src",
+    "dist-watch": "babel --presets es2015,stage-0 -w -d dist src",
+    "lint": "blint --browser --ecmaVersion 6 --forbidSemicolons src || true"
   },
   "repository": {
     "type": "git",
