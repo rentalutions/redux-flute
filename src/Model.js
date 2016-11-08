@@ -57,10 +57,12 @@ export default class Model {
         get = ()=> (this.record[prop] === null ? null : new Date(this.record[prop]))
       if (schema[prop].name === "Number")
         get = ()=> (this.record[prop] === null ? null : Number(this.record[prop]))
-      if (schema[prop].name === "Boolean")
-        if (this.record[prop] !== null)
+      if (schema[prop].name === "Boolean") {
+        if (this.record[prop] !== null) {
           this.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
+        }
         set = (newValue)=> (this.record[prop] = newValue === "false" ? false : Boolean(newValue))
+      }
 
       Object.defineProperty(this, prop, { get, set })
     }

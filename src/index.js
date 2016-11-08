@@ -6,7 +6,8 @@ import * as utils from "./utils"
 class Flute {
   constructor(){
     this.models = {}
-    this.paths = {}
+    this.apiPrefix = "/"
+    this.apiDelimiter = "-"
   }
   model(model){
     // If we're just retrieving a model
@@ -22,21 +23,24 @@ class Flute {
     if (typeof model.schema === "undefined" || utils.isEmptyObject(model.schema))
       throw new TypeError(`Model ${model.name} needs a valid schema.`)
     // Assign the model
-    this.setPath(model)
     this.models[model.name] = model;
   }
-  setAPI(options={}){
-    this.apiPrefix = options.prefix || ""
+  setAPI({ prefix = this.apiPrefix, delimiter = this.urlDelimiter }){
+    this.apiPrefix = prefix;
+    this.apiDelimiter = delimiter;
   }
-  setPath(model){
-    const generatedName = Sugar.String.dasherize(Sugar.String.pluralize(model.name))
-    const path = model.endpoint || `/${generatedName}`
-    let type = "custom"
-    if (typeof model.endpoint === "undefined")
-        type = "generated"
-    this.paths[model.name] = { path, type }
+
+  getPath(model){
+    const delimiter = delimiterType(this.apiDelimiter),
+          generatedName = Sugar.String[delimiter](Sugar.String.pluralize(model.name));
+    return model.endpoint || `${this.apiPrefix}/${generatedName}`
   }
 }
 export default new Flute();
+
+function delimiterType(delim="") {
+  if (delim.match(/^(underscores?|_)$/)) return "underscore"
+  return "dasherize"
+}
 
 export Model from "./Model"
