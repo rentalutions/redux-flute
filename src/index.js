@@ -1,5 +1,6 @@
 import Model from "./Model"
-import Sugar from "sugar-inflections"
+import Sugar from "sugar-string"
+import "sugar-inflections"
 import * as utils from "./utils"
 
 class Flute {
