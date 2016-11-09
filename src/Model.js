@@ -10,62 +10,10 @@ export default class Model {
       value: {}
     })
 
-    // Establish the ID, also _id
-    this.record.id = params._id || params.id || null
-    Object.defineProperty(this, "id", {
-      get: ()=>(this.record.id),
-      // ID can only be set on instantiation, otherwise it stays undefined
-      set: ()=>{throw new TypeError(`${modelName} property \`id\` cannot be redefined.`)}
-    })
-
     // Extract the timestamps declaration from the schema
     const { _timestamps, ...schema } = model.schema;
-    if (_timestamps) {
-      // Timestamps aren't something we're going to ever
-      // update on the record, so let's separate it early on
-      Object.defineProperty(this, "timestamps", {
-        enumerable: false,
-        value: {}
-      })
-      // Handle the createdAt
-      // Let it be undefined if nothing was given
-      this.timestamps.createdAt = params.created_at || params.createdAt
-      Object.defineProperty(this, "createdAt", {
-        get: ()=>(this.timestamps.createdAt ? new Date(this.timestamps.createdAt) : null),
-        // createdAt can only be set on instantiation, otherwise it stays undefined
-        set: ()=>{throw new TypeError(`${modelName} property \`createdAt\` cannot be redefined.`)}
-      })
-
-      // Handle the updatedAt
-      // Let it be undefined if nothing was given
-      this.timestamps.updatedAt = params.updated_at || params.updatedAt
-      Object.defineProperty(this, "updatedAt", {
-        get: ()=>(this.timestamps.updatedAt ? new Date(this.timestamps.updatedAt) : null),
-        // updatedAt can only be set on instantiation, otherwise it stays undefined
-        set: ()=>{throw new TypeError(`${modelName} property \`updatedAt\` cannot be redefined.`)}
-      })
-    }
-
-    for (let prop in schema){
-      const initialValue = params[prop] || null;
-      this.record[prop] = initialValue
-
-      let get = ()=>(this.record[prop])
-      let set = (newValue)=>(this.record[prop] = newValue)
-
-      if (schema[prop].name === "Date")
-        get = ()=> (this.record[prop] === null ? null : new Date(this.record[prop]))
-      if (schema[prop].name === "Number")
-        get = ()=> (this.record[prop] === null ? null : Number(this.record[prop]))
-      if (schema[prop].name === "Boolean") {
-        if (this.record[prop] !== null) {
-          this.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
-        }
-        set = (newValue)=> (this.record[prop] = newValue === "false" ? false : Boolean(newValue))
-      }
-
-      Object.defineProperty(this, prop, { get, set })
-    }
+    setReadOnlyProps(params, _timestamps, modelName, this);
+    setWriteableProps(params, schema, this);
   }
 
   get save(){
@@ -102,5 +50,66 @@ export default class Model {
         callback(["User1","User2"])
       }
     },1000)
+  }
+}
+
+function setReadOnlyProps(params, _timestamps, modelName, _this){
+  const { id, _id } = params;
+  // Establish the ID, also _id
+  if (id || _id) _this.record.id = id || _id;
+
+  Object.defineProperty(_this, "id", {
+    get: ()=>(_this.record.id || null),
+    // ID can only be set on instantiation, otherwise it stays undefined
+    set: ()=>{throw new TypeError(`${modelName} property \`id\` cannot be redefined.`)}
+  })
+
+  if (_timestamps) {
+    // Timestamps aren't something we're going to ever
+    // update on the record, so let's separate it early on
+    Object.defineProperty(_this, "timestamps", {
+      enumerable: false,
+      value: {}
+    })
+    // Handle the createdAt
+    // Let it be undefined if nothing was given
+    _this.timestamps.createdAt = params.created_at || params.createdAt
+    Object.defineProperty(_this, "createdAt", {
+      get: ()=>(_this.timestamps.createdAt ? new Date(_this.timestamps.createdAt) : null),
+      // createdAt can only be set on instantiation, otherwise it stays undefined
+      set: ()=>{throw new TypeError(`${modelName} property \`createdAt\` cannot be redefined.`)}
+    })
+
+    // Handle the updatedAt
+    // Let it be undefined if nothing was given
+    _this.timestamps.updatedAt = params.updated_at || params.updatedAt
+    Object.defineProperty(_this, "updatedAt", {
+      get: ()=>(_this.timestamps.updatedAt ? new Date(_this.timestamps.updatedAt) : null),
+      // updatedAt can only be set on instantiation, otherwise it stays undefined
+      set: ()=>{throw new TypeError(`${modelName} property \`updatedAt\` cannot be redefined.`)}
+    })
+  }
+}
+
+function setWriteableProps(params, schema, _this){
+  for (let prop in schema){
+    const initialValue = params[prop] || null;
+    _this.record[prop] = initialValue
+
+    let get = ()=>(_this.record[prop])
+    let set = (newValue)=>(_this.record[prop] = newValue)
+
+    if (schema[prop].name === "Date")
+      get = ()=> (_this.record[prop] === null ? null : new Date(_this.record[prop]))
+    if (schema[prop].name === "Number")
+      get = ()=> (_this.record[prop] === null ? null : Number(_this.record[prop]))
+    if (schema[prop].name === "Boolean") {
+      if (_this.record[prop] !== null) {
+        _this.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
+      }
+      set = (newValue)=> (_this.record[prop] = newValue === "false" ? false : Boolean(newValue))
+    }
+
+    Object.defineProperty(_this, prop, { get, set })
   }
 }
