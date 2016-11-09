@@ -1,3 +1,5 @@
+import * as utils from "./utils"
+
 export default class Model {
   constructor(params={}){
     // Set the model name
@@ -17,19 +19,14 @@ export default class Model {
   }
 
   get save(){
-    const model = eval(this.constructor.name),
-          record = {}
-    if (this.id != null)
-      record.id = this.id
-    for (let prop in model.schema) {
-      record[prop] = this[prop]
-    }
-    return option=>{
+    return (options = {})=>{
       return new Promise((res,err)=>{
-        setTimeout(()=>{
-          if (Math.random() < 0.5) return res(this);
-          err("woops!")
-        },1000)
+        const type = "save",
+              record = utils.pruneDeep(this.record);
+
+        // PS.send({ type, record })
+        //   .then(record=>res(this))
+        //   .catch(e=>err(e))
       })
     }
   }
