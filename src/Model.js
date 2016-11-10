@@ -1,4 +1,5 @@
 import * as utils from "./utils"
+import PS from "./PS"
 
 export default class Model {
   constructor(params={}){
@@ -22,11 +23,12 @@ export default class Model {
     return (options = {})=>{
       return new Promise((res,err)=>{
         const type = "save",
+              modelType =  this.constructor.name,
               record = utils.pruneDeep(this.record);
 
-        // PS.send({ type, record })
-        //   .then(record=>res(this))
-        //   .catch(e=>err(e))
+        PS.send({ type, modelType, record })
+          .then(record=>res(this))
+          .catch(e=>err(e))
       })
     }
   }
@@ -48,6 +50,7 @@ export default class Model {
       }
     },1000)
   }
+  static routes = {}
 }
 
 function setReadOnlyProps(params, _timestamps, modelName, _this){
@@ -110,3 +113,5 @@ function setWriteableProps(params, schema, _this){
     Object.defineProperty(_this, prop, { get, set })
   }
 }
+//Catch errors like
+//newStory.save().catch(e=>{ console.log(e) })
