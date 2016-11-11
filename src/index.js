@@ -234,11 +234,7 @@ function setWriteableProps(params, schema, _this){
   }
 }
 
-// Stories: {
-//   getting: false,
-//   posting: false,
-//   putting: false,
-//   deleting: false,
+// Story: {
 //   tmpIndex: [
 //     {
 //       // Every change to the record should change the version
@@ -249,7 +245,8 @@ function setWriteableProps(params, schema, _this){
 //       // The moment this TMP record is successfully requested,
 //       // It should move out of here, because the successful creation
 //       // Will move it to the index
-//       version: null, <-- KEY
+//       id: null, //<-- KEY
+//       version: null,
 //       requestVersion: null
 //       requestStatus: null,
 //       requestBody: null,
@@ -272,6 +269,16 @@ function setWriteableProps(params, schema, _this){
 //       record: {}
 //     }
 //   ],
+//   getting: false,
+//   posting: false,
+//   putting: false,
+//   deleting: false,
 //   // If the model is a singular type
+//   // The following fields are created
+//   version: null,
+//   requestVersion: null
+//   requestStatus: null,
+//   requestBody: null,
+//   errors: {},
 //   record: {}
 // }
