@@ -76,13 +76,22 @@ class Flute {
     // 3. if none, interpolate the route
     // 4. replace any variables in the route from the record
     // 5. Return the route
-    
+    if (!routePermitted(model.routes, method)) throw new TypeError(`Method ${method} is not permitted for model ${model.name}. Check the ${model.name} route configuration.`)
+
     const delimiter = delimiterType(this.apiDelimiter),
           generatedName = Sugar.String[delimiter](Sugar.String.pluralize(model.name));
     return model.endpoint || `${this.apiPrefix}/${generatedName}`
   }
 }
 export default new Flute();
+
+function routePermitted({ only, except }, method){
+  if ((only instanceof Array && only.indexOf(method) === -1) || (typeof only === "string" && only !== method))
+    return false
+  if ((except instanceof Array && except.indexOf(method) !== -1) || (typeof except === "string" && except === method))
+    return false
+  return true
+}
 
 function delimiterType(delim="") {
   if (delim.match(/^(underscores?|_)$/)) return "underscore"
