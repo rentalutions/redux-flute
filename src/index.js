@@ -75,9 +75,60 @@ class Flute {
     })
   }
 
+  buildInitialState(){
+    const models = {...this.models},
+          state = {}
+
+    for (let model in models) {
+      if (models.hasOwnProperty(model)){
+        if (models[model].store.singleton) {
+          // If the model is a singleton, treat it like a single record
+          state[model] = {
+            ...singleRecordProps
+          }
+        } else {
+          state[model] = {
+            ...restVerbs,
+            cache:[],
+            tmpCache:[]
+          }
+        }
+      }
+    }
+    return state;
+  }
 }
 const flute = new Flute();
 export default flute;
+
+// Establishing record defaults for store
+const restVerbs = {
+        getting: false,
+        posting: false,
+        putting: false,
+        deleting: false
+      },
+      versioningProps = {
+        version: 0,
+        requestVersion: null,
+        requestStatus: null,
+        requestBody: null,
+      },
+      recordProps = {
+        record: {},
+        errors: {}
+      },
+      singleRecordProps = {
+        ...restVerbs,
+        ...versioningProps,
+        ...recordProps
+      },
+      tmpRecordProps = ()=>({
+        id: utils.generateID(),
+        ...versioningProps,
+        ...recordProps,
+        creating: false
+      });
 
 function checkResponseStatus(response){
   const {status} = response,
@@ -173,6 +224,7 @@ export class Model {
     },1000)
   }
   static routes = {}
+  static store = {}
 }
 function setReadOnlyProps(params, _timestamps, modelName, _this){
   const { id, _id } = params;
@@ -217,6 +269,8 @@ function setWriteableProps(params, schema, _this){
     _this.record[prop] = initialValue
 
     let get = ()=>(_this.record[prop])
+    // @TODO: The set function should dispatch an action that something was set, which
+    // would be used to increase the version number, and thus invalidate errors
     let set = (newValue)=>(_this.record[prop] = newValue)
 
     if (schema[prop].name === "Date")
@@ -234,8 +288,18 @@ function setWriteableProps(params, schema, _this){
   }
 }
 
+export const reducer = (state = flute.buildInitialState(), action)=>{
+  // switch(action.type) {
+  //   case "TOGGLE_BACKGROUND_COLOR" :
+  //     return Object.assign({}, state, { backgroundColor: state.backgroundColor == "red" ? "cornflowerblue":"red" })
+  //   default:
+  //     return state;
+  // }
+  return state;
+}
+
 // Story: {
-//   tmpIndex: [
+//   tmpCache: [
 //     {
 //       // Every change to the record should change the version
 //       // If the version is the same as the request version,
@@ -255,7 +319,7 @@ function setWriteableProps(params, schema, _this){
 //       record:{}
 //     }
 //   ],
-//   index: [
+//   cache: [
 //     {
 //       getting: false,
 //       posting: false,
