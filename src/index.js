@@ -1,9 +1,15 @@
 import Sugar from "sugar-string"
 import "sugar-inflections"
 import "whatwg-fetch"
-import * as utils from "./utils"
+import {
+  isEmptyObject, generateID, pruneDeep,
+  pruneArray, guid, regexIndexOf, checkResponseStatus,
+  parseJSON, routePermitted, generateRoute,
+  interpolateRoute, delimiterType, setReadOnlyProps,
+  setWriteableProps, mergeRecordsIntoCache
+} from "./utils"
 
-class Flute {
+export class Flute {
   constructor(){
     this.models = {}
     this.apiPrefix = "/"
@@ -30,16 +36,20 @@ class Flute {
     if (!(model.prototype instanceof Model))
       throw new TypeError(`Model ${model.name} needs to extend from Flute's Model.`)
     // Check if there's a schema that isn't empty
-    if (typeof model.schema === "undefined" || utils.isEmptyObject(model.schema))
-      throw new TypeError(`Model ${model.name} needs a valid schema.`)
+    if (typeof model.schema === "undefined" || isEmptyObject(model.schema))
+      throw new TypeError(`Model #<${model.name}> needs a valid schema.`)
     // Assign the model
     this.models[model.name] = model;
+    return true;
   }
 
-  setAPI({ prefix=this.apiPrefix, delimiter=this.apiDelimiter, headers=this.apiHeaders, credentials=this.apiCredentials }){
+  setAPI({ prefix=this.apiPrefix,
+           delimiter=this.apiDelimiter,
+           headers=this.apiHeaders,
+           credentials=this.apiCredentials }){
     this.apiPrefix = prefix;
     this.apiDelimiter = delimiter;
-    this.apiHeaders = Object.assign({}, this.apiHeaders, headers);
+    Object.assign(this.apiHeaders, headers);
     this.apiCredentials = credentials;
   }
 
@@ -50,7 +60,7 @@ class Flute {
       It should also interpolate the correct information like
       :id from the params
     */
-    if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model \`${name}\`. Check the \`${name}\` route configuration.`)
+    if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model #<${name}>. Check the #<${name}> route configuration.`)
     const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix)
     return interpolateRoute(route, record)
   }
@@ -94,7 +104,7 @@ class Flute {
               credentials = this.apiCredentials,
               recordForAction = record.id ? { id:record.id } : undefined,
               modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase();
-        if (!recordForAction) throw new Error(`Cannot destroy unsaved ${modelType}.`)
+        if (!recordForAction) throw new Error(`Cannot destroy unsaved #<${modelType}>.`)
         if (this.checkForDispatch())
           this.dispatch({ type: `@FLUTE_DELETE_${modelTypeForAction}`, record:recordForAction })
         fetch(route, { method, headers, credentials })
@@ -139,7 +149,9 @@ class Flute {
     return state;
   }
 }
+
 const flute = new Flute();
+
 export default flute;
 
 export const middleware = store => next => action => {
@@ -149,7 +161,7 @@ export const middleware = store => next => action => {
   }
   return next(action)
 }
-// Establishing record defaults for store
+
 const restVerbs = 
       {
         getting: false,
@@ -173,53 +185,11 @@ const restVerbs =
         ...recordProps
       },
       tmpRecordProps = ()=>({
-        id: utils.generateID(),
+        id: generateID(),
         ...versioningProps,
         ...recordProps,
         creating: false
       });
-
-function checkResponseStatus(response){
-  const {status} = response,
-        error = new Error;
-  if (status >= 200 && status < 300)
-    return response
-  error.message = response.statusText
-  error.response = response
-  throw error
-}
-function parseJSON(response){
-  return response.json()
-}
-function routePermitted({ only, except }, method) {
-  if ((only instanceof Array && only.indexOf(method) === -1) || (typeof only === "string" && only !== method))
-    return false
-  if ((except instanceof Array && except.indexOf(method) !== -1) || (typeof except === "string" && except === method))
-    return false
-  return true
-}
-function generateRoute(name, method, apiDelimiter, prefix, index=false) {
-  /*
-  GET    /stories      #index
-  GET    /stories/:id  #show
-  POST   /stories      #create
-  PUT    /stories/:id  #update
-  DELETE /stories/:id  #destroy
-  */
-  const delimiter = delimiterType(apiDelimiter),
-        pluralizedModelWithDelimiter = `/${Sugar.String[delimiter](Sugar.String.pluralize(name))}`,
-        id = method === "POST" || index ? "" : "/:id";
-  return `${prefix}${pluralizedModelWithDelimiter}${id}`
-}
-function interpolateRoute(route, record) {
-  return route.replace(/:([^\/]*)/g, (match, capture)=>(
-    record.hasOwnProperty(capture) && record[capture] ? record[capture] : match
-  ))
-}
-function delimiterType(delim="") {
-  if (delim.match(/^(underscores?|_)$/)) return "underscore"
-  return "dasherize"
-}
 
 export class Model {
   constructor(params={}){
@@ -256,7 +226,7 @@ export class Model {
     return (options = {})=>{
       return new Promise((resolve,error)=>{
         const modelType =  this.constructor.name,
-              record = utils.pruneDeep(this.record);
+              record = pruneDeep(this.record);
         flute.saveModel(modelType, record)
           // A few things need to happen
           // On success, it should dispatch the actions to put this new record in store
@@ -311,72 +281,12 @@ export class Model {
   static routes = {}
   static store = { singleton: false }
 }
-function setReadOnlyProps(params, _timestamps, modelName, _this){
-  const { id, _id } = params;
-  // Establish the ID, also _id
-  if (id || _id) _this.record.id = id || _id;
-
-  Object.defineProperty(_this, "id", {
-    get: ()=>(_this.record.id || null),
-    // ID can only be set on instantiation, otherwise it stays undefined
-    set: ()=>{throw new TypeError(`${modelName} property \`id\` cannot be redefined.`)}
-  })
-
-  if (_timestamps) {
-    // Timestamps aren't something we're going to ever
-    // update on the record, so let's separate it early on
-    Object.defineProperty(_this, "timestamps", {
-      enumerable: false,
-      value: {}
-    })
-    // Handle the createdAt
-    // Let it be undefined if nothing was given
-    _this.timestamps.createdAt = params.created_at || params.createdAt
-    Object.defineProperty(_this, "createdAt", {
-      get: ()=>(_this.timestamps.createdAt ? new Date(_this.timestamps.createdAt) : null),
-      // createdAt can only be set on instantiation, otherwise it stays undefined
-      set: ()=>{throw new TypeError(`${modelName} property \`createdAt\` cannot be redefined.`)}
-    })
-
-    // Handle the updatedAt
-    // Let it be undefined if nothing was given
-    _this.timestamps.updatedAt = params.updated_at || params.updatedAt
-    Object.defineProperty(_this, "updatedAt", {
-      get: ()=>(_this.timestamps.updatedAt ? new Date(_this.timestamps.updatedAt) : null),
-      // updatedAt can only be set on instantiation, otherwise it stays undefined
-      set: ()=>{throw new TypeError(`${modelName} property \`updatedAt\` cannot be redefined.`)}
-    })
-  }
-}
-function setWriteableProps(params, schema, _this){
-  for (let prop in schema){
-    const initialValue = params[prop] || null;
-    _this.record[prop] = initialValue
-
-    let get = ()=>(_this.record[prop])
-    // @TODO: The set function should dispatch an action that something was set, which
-    // would be used to increase the version number, and thus invalidate errors
-    let set = (newValue)=>(_this.record[prop] = newValue)
-
-    if (schema[prop].name === "Date")
-      get = ()=> (_this.record[prop] === null ? null : new Date(_this.record[prop]))
-    if (schema[prop].name === "Number")
-      get = ()=> (_this.record[prop] === null ? null : Number(_this.record[prop]))
-    if (schema[prop].name === "Boolean") {
-      if (_this.record[prop] !== null) {
-        _this.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
-      }
-      set = (newValue)=> (_this.record[prop] = newValue === "false" ? false : Boolean(newValue))
-    }
-
-    Object.defineProperty(_this, prop, { get, set })
-  }
-}
 
 const actionMatch = /^@FLUTE_(SET|GET|POST|PUT|DELETE|REQUEST_INFO|SAVE)(_TMP)?(_SUCCESS)?_(.*)$/
+
 export const reducer = (state = flute.buildInitialState(), { type,record=null,tmpRecord=null,requestStatus=null,requestBody=null,errors={} })=>{
   // If this is a flute action
-  if (utils.regexIndexOf(actionMatch, type) === -1) return state
+  if (regexIndexOf(actionMatch, type) === -1) return state
 
   // Extract the action's info
   const [,internalAction, isTemp=false, isSuccessful=false, actionModelName] = type.match(actionMatch),
@@ -491,81 +401,3 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
   }
   return newState;
 }
-function mergeRecordsIntoCache(cache, records, keyStr) {
-  // First remove anything in the cache that matches keys in the records
-  const filteredCache = cache.filter(cacheItem=>{
-          let match = false;
-          records.map(recordsItem=>{
-            match = recordsItem[keyStr] == cacheItem.record[keyStr]
-          })
-          return !match;
-        }),
-        // Get the records ready for the cache
-        recordsForCache = records.map(record=>({...singleRecordProps, record}));
-  // Finally, merge the new records and the filtered records
-  return [].concat(filteredCache, recordsForCache);
-}
-
-// @FLUTE_GET_STORY
-// @FLUTE_GET_SUCCESS_STORY
-// @FLUTE_PUT_STORY
-// @FLUTE_PUT_SUCCESS_STORY
-// @FLUTE_POST_STORY
-// @FLUTE_POST_SUCCESS_STORY
-// @FLUTE_DELETE_STORY
-// @FLUTE_DELETE_SUCCESS_STORY
-// @FLUTE_SET_STORY
-// @FLUTE_REQUEST_INFO_STORY
-// @FLUTE_SAVE_TMP_STORY
-// @FLUTE_REQUEST_INFO_TMP_STORY
-
-const demoModel = {
-  getting: false,
-  posting: false,
-  putting: false,
-  deleting: false,
-  // If the model is a singular type
-  // The following fields are created
-  version: null,
-  requestVersion: null,
-  requestStatus: null,
-  requestBody: null,
-  errors: {},
-  record: {},
-  // If the model is not a singleton, it gets a cache
-  tmpCache: [
-    {
-      // Every change to the record should change the version
-      // If the version is the same as the request version,
-      // That means the state of the record is in the same state as
-      // it was from the most recent request, meaning all the
-      // Errors still apply.
-      // The moment this TMP record is successfully requested,
-      // It should move out of here, because the successful creation
-      // Will move it to the index
-      id: null, //<-- KEY
-      version: null,
-      requestVersion: null,
-      requestStatus: null,
-      requestBody: null,
-      errors: {},
-      creating: false,
-      record:{}
-    }
-  ],
-  cache: [
-    {
-      getting: false,
-      posting: false,
-      putting: false,
-      deleting: false,
-      version: null,
-      requestVersion: null,
-      requestStatus: null,
-      requestBody: null,
-      errors: {},
-      record: {}
-    }
-  ],
-}
-//Uncaught (in promise) TypeError: Cannot assign to read only property 'record' of object '#<Story>'

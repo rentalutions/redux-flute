@@ -4,9 +4,10 @@
   "description": "Smart front-end data cache manager",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "babel --presets es2015,stage-0 -d dist src",
-    "dist-watch": "babel --presets es2015,stage-0 -w -d dist src"
+    "test": "mocha -r babel-core/register",
+    "test-watch": "mocha -w -r babel-core/register",
+    "dist": "babel -d dist src",
+    "dist-watch": "babel -w -d dist src"
   },
   "repository": {
     "type": "git",
@@ -26,7 +27,9 @@
     "babel-cli": "^6.18.0",
     "babel-core": "^6.18.2",
     "babel-preset-es2015": "^6.18.0",
-    "babel-preset-stage-0": "^6.16.0"
+    "babel-preset-stage-0": "^6.16.0",
+    "chai": "^3.5.0",
+    "mocha": "^3.1.2"
   },
   "dependencies": {
     "es6-promise": "^4.0.5",
