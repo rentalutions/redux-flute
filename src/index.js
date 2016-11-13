@@ -64,15 +64,56 @@ class Flute {
               route = this.getRoute(model, method, record),
               body = JSON.stringify(record),
               headers = this.apiHeaders,
-              credentials = this.apiCredentials;
+              credentials = this.apiCredentials,
+              recordForAction = record.id ? record : undefined,
+              modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase();
+        if (this.checkForDispatch())
+          this.dispatch({ type: `@FLUTE_${method}_${modelTypeForAction}`, record:recordForAction })
         fetch(route, { method, body, headers, credentials })
-              .then(checkResponseStatus)
-              .then(parseJSON)
-              .then(data=>resolve(data))
-              .catch(e=>error(e))
+          .then(checkResponseStatus)
+          .then(parseJSON)
+          .then(data=>{
+            const newModel = new model(data)
+            this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:data })
+            resolve(newModel)
+          })
+          // Still need to handle errors, which means parsing the json and dispatching the correct actions
+          .catch(e=>error(e))
       }
       catch(e) { error(e) }
     })
+  }
+
+  destroyModel(modelType, record){
+    return new Promise((resolve, error)=>{
+      try {
+        const model = this.models[modelType],
+              method = "DELETE",
+              route = this.getRoute(model, method, record),
+              headers = this.apiHeaders,
+              credentials = this.apiCredentials,
+              recordForAction = record.id ? { id:record.id } : undefined,
+              modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase();
+        if (!recordForAction) throw new Error(`Cannot destroy unsaved ${modelType}.`)
+        if (this.checkForDispatch())
+          this.dispatch({ type: `@FLUTE_DELETE_${modelTypeForAction}`, record:recordForAction })
+        fetch(route, { method, headers, credentials })
+          .then(checkResponseStatus)
+          .then(()=>{
+            this.dispatch({ type: `@FLUTE_DELETE_SUCCESS_${modelTypeForAction}`, record:recordForAction })
+            resolve()
+          })
+          // Still need to handle errors, which means parsing the json and dispatching the correct actions
+          .catch(e=>error(e))
+      }
+      catch(e) { error(e); }
+    })
+  }
+
+  checkForDispatch(){
+    if (this.dispatch) return true
+    throw new Error("Please use the Flute middleware with Redux so internal actions can be dispatched.")
+    return false
   }
 
   buildInitialState(){
@@ -101,8 +142,16 @@ class Flute {
 const flute = new Flute();
 export default flute;
 
+export const middleware = store => next => action => {
+  if (!flute.store) {
+    flute.store = store;
+    flute.dispatch = store.dispatch;
+  }
+  return next(action)
+}
 // Establishing record defaults for store
-const restVerbs = {
+const restVerbs = 
+      {
         getting: false,
         posting: false,
         putting: false,
@@ -189,18 +238,37 @@ export class Model {
     setReadOnlyProps(params, _timestamps, modelName, this);
     setWriteableProps(params, schema, this);
   }
-
+  get updateAttributes() {
+    return (attributes={})=>{
+      // Includes validations
+      Object.assign(this, attributes)
+      return this.save()
+    }
+  }
+  get updateAttribute() {
+    return (name, value)=>{
+      // Excludes validations
+      this[name] = value;
+      return this.save({validate: false})
+    }
+  }
   get save(){
     return (options = {})=>{
       return new Promise((resolve,error)=>{
         const modelType =  this.constructor.name,
               record = utils.pruneDeep(this.record);
         flute.saveModel(modelType, record)
-              // A few things need to happen
-              // On success, it should dispatch the actions to put this new record in store
-              // it should send the response in the store and hydrate this record in place
-              // Errors should be populated automatically
-          .then(record=>resolve(this))
+          // A few things need to happen
+          // On success, it should dispatch the actions to put this new record in store
+          // it should send the response in the store and hydrate this record in place
+          // Errors should be populated automatically
+          .then(savedRecord=>{
+            // Copy the new properties to this instance
+            Object.assign(this.record, savedRecord.record)
+            if (savedRecord.timestamps)
+              Object.assign(this.timestamps, savedRecord.timeStamps)
+            resolve(this)
+          })
           .catch(e=>error(e))
       })
     }
@@ -215,8 +283,25 @@ export class Model {
       })
     }
   }
+  get destroy(){
+    return ()=>{
+      return new Promise((resolve,error)=>{
+        const modelType =  this.constructor.name;
+        flute.destroyModel(modelType, {id:this.id})
+          .then(resolve())
+          .catch(e=>error(e))
+      })
+    }
+  }
+  static create(){
+    return attrs=>{
+      const model = eval(this.constructor.name),
+            record = new model(attrs)
+      return record.save()
+    }
+  }
   static all(callback){
-    //Returns all users
+    //Returns all users from index
     setTimeout(()=>{
       if (typeof callback === "function") {
         callback(["User1","User2"])
@@ -224,7 +309,7 @@ export class Model {
     },1000)
   }
   static routes = {}
-  static store = {}
+  static store = { singleton: false }
 }
 function setReadOnlyProps(params, _timestamps, modelName, _this){
   const { id, _id } = params;
@@ -288,61 +373,199 @@ function setWriteableProps(params, schema, _this){
   }
 }
 
-export const reducer = (state = flute.buildInitialState(), action)=>{
-  // switch(action.type) {
-  //   case "TOGGLE_BACKGROUND_COLOR" :
-  //     return Object.assign({}, state, { backgroundColor: state.backgroundColor == "red" ? "cornflowerblue":"red" })
-  //   default:
-  //     return state;
-  // }
-  return state;
+const actionMatch = /^@FLUTE_(SET|GET|POST|PUT|DELETE|REQUEST_INFO|SAVE)(_TMP)?(_SUCCESS)?_(.*)$/
+export const reducer = (state = flute.buildInitialState(), { type,record=null,tmpRecord=null,requestStatus=null,requestBody=null,errors={} })=>{
+  // If this is a flute action
+  if (utils.regexIndexOf(actionMatch, type) === -1) return state
+
+  // Extract the action's info
+  const [,internalAction, isTemp=false, isSuccessful=false, actionModelName] = type.match(actionMatch),
+        modelName = Sugar.String.camelize(actionModelName),
+        model = flute.models[modelName],
+        { singleton } = model.store,
+        { keyStr } = model.schema._key || "id",
+        newState = {...state};
+
+  switch (internalAction) {
+    case "SET":
+      //Check if temp
+      break;
+    case "GET":
+      // Set the model getting state
+      newState[modelName] = { ...state[modelName], getting:!isSuccessful }
+      // If we have new information
+      if (isSuccessful && record) {
+        // If the model is a singleton, easy update the record
+        if (singleton) {
+          newState[modelName].record = record
+          newState[modelName].version = 0
+        } else {
+          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr)
+        }
+      }
+      else if(!singleton && record[keyStr]) {
+        // It is the start of a get request, so if there is record
+        // Set that record's getting prop to true
+        newState[modelName].cache = newState[modelName].cache.map(item=>{
+          if (item.record[keyStr] && item.record[keyStr] == record[keyStr])
+            return { ...item, getting: true }
+          else
+            return item
+        })
+      }
+
+      break;
+    case "POST":
+      newState[modelName] = { ...state[modelName], posting:!isSuccessful }
+      // If we have new information
+      if (isSuccessful && record) {
+        // If this is singleton, update the main record
+        if (singleton){
+          newState[modelName].record = record
+          newState[modelName].version = 0
+          // If it's a traditional cache, add the results to the index
+        } else {
+          const recordsForCache = [].concat(record).map(item=>({...singleRecordProps, record: item}));
+          newState[modelName].cache = [].concat(newState[modelName].cache, recordsForCache)
+        }
+      }
+      break;
+    case "PUT":
+      newState[modelName] = { ...state[modelName], putting:!isSuccessful }
+      // If we have new information
+      if (isSuccessful && record) {
+        // If the model is a singleton, easy update the record
+        if (singleton) {
+          newState[modelName].record = record
+          newState[modelName].version = 0
+        } else {
+          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr)
+        }
+      }
+      else if(!singleton && record[keyStr]) {
+        // It is the start of a get request, so if there is record
+        // Set that record's getting prop to true
+        newState[modelName].cache = newState[modelName].cache.map(item=>{
+          if (item.record[keyStr] && item.record[keyStr] == record[keyStr])
+            return { ...item, putting: true }
+          else
+            return item
+        })
+      }
+      break;
+    case "DELETE":
+      newState[modelName] = { ...state[modelName], deleting:!isSuccessful }
+      // If we have new information
+      if (isSuccessful && record[keyStr]) {
+        if (singleton) {
+          // For singleton records, empty the record
+          newState[modelName].record = {}
+          newState[modelName].version = 0
+        } else {
+          // For traditional cache's, filter the record out
+          newState[modelName].cache = newState[modelName].cache.filter(item=>(item.record[keyStr] !== record[keyStr]))
+        }
+      } else if (!singleton && record[keyStr]) {
+        //This is the start of the request, so mark a record for deletion
+        newState[modelName].cache = newState[modelName].cache.map(item=>{
+          if (item.record[keyStr] && item.record[keyStr] == record[keyStr])
+            return { ...item, deleting: true }
+          else
+            return item
+        })
+      }
+      break;
+    case "REQUEST_INFO":
+      newState[modelName] = {
+        ...state[modelName],
+        getting: false,
+        posting: false,
+        putting: false,
+        deleting: false
+      }
+      //Check if temp
+      break;
+    case "SAVE":
+      //Already temp
+      break;
+  }
+  return newState;
+}
+function mergeRecordsIntoCache(cache, records, keyStr) {
+  // First remove anything in the cache that matches keys in the records
+  const filteredCache = cache.filter(cacheItem=>{
+          let match = false;
+          records.map(recordsItem=>{
+            match = recordsItem[keyStr] == cacheItem.record[keyStr]
+          })
+          return !match;
+        }),
+        // Get the records ready for the cache
+        recordsForCache = records.map(record=>({...singleRecordProps, record}));
+  // Finally, merge the new records and the filtered records
+  return [].concat(filteredCache, recordsForCache);
 }
 
-// Story: {
-//   tmpCache: [
-//     {
-//       // Every change to the record should change the version
-//       // If the version is the same as the request version,
-//       // That means the state of the record is in the same state as
-//       // it was from the most recent request, meaning all the
-//       // Errors still apply.
-//       // The moment this TMP record is successfully requested,
-//       // It should move out of here, because the successful creation
-//       // Will move it to the index
-//       id: null, //<-- KEY
-//       version: null,
-//       requestVersion: null
-//       requestStatus: null,
-//       requestBody: null,
-//       errors: {},
-//       creating: false,
-//       record:{}
-//     }
-//   ],
-//   cache: [
-//     {
-//       getting: false,
-//       posting: false,
-//       putting: false,
-//       deleting: false,
-//       version: null,
-//       requestVersion: null
-//       requestStatus: null,
-//       requestBody: null,
-//       errors: {},
-//       record: {}
-//     }
-//   ],
-//   getting: false,
-//   posting: false,
-//   putting: false,
-//   deleting: false,
-//   // If the model is a singular type
-//   // The following fields are created
-//   version: null,
-//   requestVersion: null
-//   requestStatus: null,
-//   requestBody: null,
-//   errors: {},
-//   record: {}
-// }
+// @FLUTE_GET_STORY
+// @FLUTE_GET_SUCCESS_STORY
+// @FLUTE_PUT_STORY
+// @FLUTE_PUT_SUCCESS_STORY
+// @FLUTE_POST_STORY
+// @FLUTE_POST_SUCCESS_STORY
+// @FLUTE_DELETE_STORY
+// @FLUTE_DELETE_SUCCESS_STORY
+// @FLUTE_SET_STORY
+// @FLUTE_REQUEST_INFO_STORY
+// @FLUTE_SAVE_TMP_STORY
+// @FLUTE_REQUEST_INFO_TMP_STORY
+
+const demoModel = {
+  getting: false,
+  posting: false,
+  putting: false,
+  deleting: false,
+  // If the model is a singular type
+  // The following fields are created
+  version: null,
+  requestVersion: null,
+  requestStatus: null,
+  requestBody: null,
+  errors: {},
+  record: {},
+  // If the model is not a singleton, it gets a cache
+  tmpCache: [
+    {
+      // Every change to the record should change the version
+      // If the version is the same as the request version,
+      // That means the state of the record is in the same state as
+      // it was from the most recent request, meaning all the
+      // Errors still apply.
+      // The moment this TMP record is successfully requested,
+      // It should move out of here, because the successful creation
+      // Will move it to the index
+      id: null, //<-- KEY
+      version: null,
+      requestVersion: null,
+      requestStatus: null,
+      requestBody: null,
+      errors: {},
+      creating: false,
+      record:{}
+    }
+  ],
+  cache: [
+    {
+      getting: false,
+      posting: false,
+      putting: false,
+      deleting: false,
+      version: null,
+      requestVersion: null,
+      requestStatus: null,
+      requestBody: null,
+      errors: {},
+      record: {}
+    }
+  ],
+}
+//Uncaught (in promise) TypeError: Cannot assign to read only property 'record' of object '#<Story>'

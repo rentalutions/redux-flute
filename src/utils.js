@@ -53,3 +53,8 @@ export function guid(){
   }
   return `${s4()+s4()}-${s4()}-${s4()}-${s4()}-${s4()+s4()+s4()}`;
 }
+
+export function regexIndexOf(regex, string, startpos=0){
+  var indexOf = string.substring(startpos).search(regex);
+  return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
+}
