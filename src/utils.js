@@ -22,27 +22,34 @@ export function pruneDeep(obj){
   return function prune(current){
     for (let key in current) {
       if (current.hasOwnProperty(key)) {
+        if (current[key] instanceof Array){
+          current[key] = pruneArray(current[key])
+        }
+
         let value = current[key];
         if (typeof value === "undefined" || value == null ||
-            (value != null && typeof value === "object" && isEmptyObject(prune(value)))) {
+            (value != null && typeof value === "object" && isEmptyObject(prune(value))) ||
+            (value instanceof Array && value.length === 0)
+           ) {
           delete current[key]
         }
       }
     }
-    if (current instanceof Array) current = pruneArray(current)
     return current
   }(Object.assign({}, obj))
 }
 
 export function pruneArray(arr) {
-  var newArray = new Array();
+  const newArray = new Array();
   for (var i = 0; i < arr.length; i++) {
     if (arr[i] != null && typeof arr[i] === "object")
       arr[i] = pruneDeep(arr[i])
 
-    if (!(typeof arr[i] === "undefined")) {
-      newArray.push(arr[i]);
-    }
+    if (typeof arr[i] === "undefined" || arr[i] === null) continue;
+    if (typeof arr[i] === "object" && isEmptyObject(arr[i])) continue;
+    if (typeof arr[i] === "number" && isNaN(arr[i])) continue;
+
+    newArray.push(arr[i]);
   }
   return newArray;
 }
