@@ -54,16 +54,6 @@ export function pruneArray(arr) {
   return newArray;
 }
 
-export function guid(){
-  function s4() {
-    return Math
-      .floor((1 + Math.random()) * 0x10000)
-      .toString(16)
-      .substring(1);
-  }
-  return `${s4()+s4()}-${s4()}-${s4()}-${s4()}-${s4()+s4()+s4()}`;
-}
-
 export function regexIndexOf(regex, string, startpos=0){
   var indexOf = string.substring(startpos).search(regex);
   return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
@@ -77,10 +67,6 @@ export function checkResponseStatus(response){
   error.message = response.statusText
   error.response = response
   throw error
-}
-
-export function parseJSON(response){
-  return response.json()
 }
 
 export function routePermitted({ only, except }, method) {

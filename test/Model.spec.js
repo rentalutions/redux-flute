@@ -5,15 +5,16 @@ describe("Flute", ()=>{
   describe("#model", ()=>{
     const fluteTest = new Flute();
 
-    it("should return true when passing in a Model class", ()=>{
-      class Person extends Model {
-        static schema = {
-          name: String,
-          age: Number
-        }
+    class Person extends Model {
+      static schema = {
+        name: String,
+        age: Number
       }
-      const fluteReturn = fluteTest.model(Person);
-      expect(fluteReturn).to.equal(true)
+    }
+
+    it("should add a new Model to the Flute instance", ()=>{
+      fluteTest.model(Person);
+      expect(fluteTest.models).to.have.property("Person")
     });
 
     it("should retrieve a Flute #<Model> when passed a string", ()=>{
@@ -21,7 +22,17 @@ describe("Flute", ()=>{
       expect(Person.prototype instanceof Model).to.equal(true)
     });
 
-    it("should throw an error if getting a non-existant model.",()=>{})
+    it("should throw an error if getting a non-existant model.",()=>{
+      expect(()=>(fluteTest.model("Animal"))).to.throw(ReferenceError)
+    });
 
+    it("should throw an error if passed a non-Flute class",()=>{
+      expect(()=>(fluteTest.model(class Person {}))).to.throw(TypeError)
+    });
+
+    it("should throw an error if the #<Model> has no or an empty schema",()=>{
+      expect(()=>(fluteTest.model(class Spreadsheet extends Model {}))).to.throw(TypeError)
+      expect(()=>(fluteTest.model(class Spreadsheet extends Model { static schema = {}}))).to.throw(TypeError)
+    });
   });
 });

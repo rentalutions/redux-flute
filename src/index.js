@@ -3,8 +3,8 @@ import "sugar-inflections"
 import "whatwg-fetch"
 import {
   isEmptyObject, generateID, pruneDeep,
-  pruneArray, guid, regexIndexOf, checkResponseStatus,
-  parseJSON, routePermitted, generateRoute,
+  pruneArray, regexIndexOf, checkResponseStatus,
+  routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
   setWriteableProps, mergeRecordsIntoCache
 } from "./utils"
@@ -40,7 +40,6 @@ export class Flute {
       throw new TypeError(`Model #<${model.name}> needs a valid schema.`)
     // Assign the model
     this.models[model.name] = model;
-    return true;
   }
 
   setAPI({ prefix=this.apiPrefix,
@@ -81,7 +80,8 @@ export class Flute {
           this.dispatch({ type: `@FLUTE_${method}_${modelTypeForAction}`, record:recordForAction })
         fetch(route, { method, body, headers, credentials })
           .then(checkResponseStatus)
-          .then(parseJSON)
+          // Parse JSON
+          .then(res=>(res.json()))          
           .then(data=>{
             const newModel = new model(data)
             this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:data })
