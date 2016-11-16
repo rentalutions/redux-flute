@@ -19,7 +19,7 @@ describe("Flute", ()=>{
 
     it("should retrieve a Flute #<Model> when passed a string", ()=>{
       const Person = fluteTest.model("Person");
-      expect(Person.prototype instanceof Model).to.equal(true)
+      expect(Person.prototype).to.be.instanceof(Model)
     });
 
     it("should throw an error if getting a non-existant model.",()=>{
