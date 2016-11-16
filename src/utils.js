@@ -1,5 +1,5 @@
-//import "sugar-string"
 import Sugar from "sugar-inflections"
+import "sugar-string"
 
 console.log("Sugar is:", Sugar)
 console.log("Sugar::String is:", Sugar.String)
