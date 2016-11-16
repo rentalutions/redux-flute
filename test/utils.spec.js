@@ -26,8 +26,8 @@ describe("Utils", ()=>{
 
   describe("#pruneArray", ()=>{
     it("should remove falsy values from an array, except empty strings", ()=>{
-      const testArr = [null, undefined, NaN, "something",""]
-      expect(pruneArray(testArr).length).to.equal(2)
+      const testArr = [null, undefined, NaN, "something","", false, 0]
+      expect(pruneArray(testArr).length).to.equal(4)
     });
   });
 
@@ -36,6 +36,8 @@ describe("Utils", ()=>{
             {
               beTruthy: "something",
               beAnEmptyString: "",
+              beZero: 0,
+              beFalse: false,
               beUndefined: undefined,
               beNull: null,
               beEmptyObject: {},
@@ -66,6 +68,9 @@ describe("Utils", ()=>{
               beArrayWithFalsyValues:[null,undefined,NaN],
               beADeepObjectWithProperties:{
                 beTruthy: "something",
+                beAnEmptyString: "",
+                beZero: 0,
+                beFalse: false,
                 beUndefined: undefined,
                 beNull: null,
                 beEmptyObject: {},
@@ -100,6 +105,8 @@ describe("Utils", ()=>{
             manuallyPrunedObject = {
               beTruthy: "something",
               beAnEmptyString: "",
+              beZero: 0,
+              beFalse: false,
               beObjectWithTruthyProperties: {
                 someProp: true
               },
@@ -111,6 +118,9 @@ describe("Utils", ()=>{
               ],
               beADeepObjectWithProperties:{
                 beTruthy: "something",
+                beAnEmptyString: "",
+                beZero: 0,
+                beFalse: false,
                 beObjectWithTruthyProperties: {
                   someProp: true
                 },

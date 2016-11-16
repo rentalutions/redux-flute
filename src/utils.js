@@ -1,9 +1,11 @@
-import Sugar from "sugar-string"
-import "sugar-inflections"
+//import "sugar-string"
+import Sugar from "sugar-inflections"
 
 console.log("Sugar is:", Sugar)
 console.log("Sugar::String is:", Sugar.String)
 console.log("Sugar::String::pluralize is:", Sugar.String.pluralize)
+console.log("Sugar::String::underscore is:", Sugar.String.underscore)
+console.log("Sugar::String::dasherize is:", Sugar.String.dasherize)
 
 export function isEmptyObject(obj){
   for (let name in obj) {
