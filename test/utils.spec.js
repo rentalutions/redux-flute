@@ -1,5 +1,3 @@
-import Sugar from "sugar-string"
-import "sugar-inflections"
 import { expect } from "chai"
 import {
   isEmptyObject, generateID, pruneDeep,
