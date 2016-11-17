@@ -33,8 +33,6 @@
   },
   "dependencies": {
     "es6-promise": "^4.0.5",
-    "sugar-inflections": "^2.0.0",
-    "sugar-string": "^2.0.2",
     "whatwg-fetch": "^1.0.0"
   }
 }

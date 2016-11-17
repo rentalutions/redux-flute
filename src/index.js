@@ -1,5 +1,4 @@
-import Sugar from "sugar-string"
-import "sugar-inflections"
+import "./sugar"
 import "whatwg-fetch"
 import {
   isEmptyObject, generateID, pruneDeep,
