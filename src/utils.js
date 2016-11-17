@@ -1,4 +1,5 @@
 import "./sugar"
+import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
 export function isEmptyObject(obj){
   for (let name in obj) {
@@ -165,16 +166,16 @@ export function setWriteableProps(params, schema, _obj){
 }
 
 export function mergeRecordsIntoCache(cache, records, keyStr, model) {
-  // First remove anything in the cache that matches keys in the records
-  const filteredCache = cache.filter(cacheItem=>{
+        // Get the records ready for the cache
+  const recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)})),
+        // Remove anything in the cache that matches keys in the records
+        filteredCache = cache.filter(cacheItem=>{
           let match = false;
-          records.map(recordsItem=>{
-            match = recordsItem[keyStr] == cacheItem.record[keyStr]
+          recordsForCache.map(recordsItem=>{
+            match = recordsItem.record[keyStr] == cacheItem.record[keyStr]
           })
           return !match;
-        }),
-        // Get the records ready for the cache
-        recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)}));
+        })
   // Finally, merge the new records and the filtered records
   return [].concat(filteredCache, recordsForCache);
 }
@@ -183,3 +184,12 @@ export function createThisRecord(model, item) {
   const newInstance = new model(item)
   return { ...newInstance.record, ...newInstance.timestamps }
 }
+
+export function tmpRecordProps(){
+  return({
+    id: generateID(),
+    ...versioningProps,
+    ...recordProps,
+    creating: false
+  });
+};

@@ -7,6 +7,7 @@ import {
   interpolateRoute, delimiterType, setReadOnlyProps,
   setWriteableProps, mergeRecordsIntoCache, createThisRecord
 } from "./utils"
+import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
 export class Flute {
   constructor(){
@@ -161,40 +162,11 @@ export const middleware = store => next => action => {
   return next(action)
 }
 
-const restVerbs = 
-      {
-        getting: false,
-        posting: false,
-        putting: false,
-        deleting: false
-      },
-      versioningProps = {
-        version: 0,
-        requestVersion: null,
-        requestStatus: null,
-        requestBody: null,
-      },
-      recordProps = {
-        record: {},
-        errors: {}
-      },
-      singleRecordProps = {
-        ...restVerbs,
-        ...versioningProps,
-        ...recordProps
-      },
-      tmpRecordProps = ()=>({
-        id: generateID(),
-        ...versioningProps,
-        ...recordProps,
-        creating: false
-      });
-
 export class Model {
   constructor(params={}){
     // Set the model name
     const modelName = this.constructor.name,
-          model = eval(modelName)
+          model = flute.models[modelName]
 
     // Define the internal record
     Object.defineProperty(this, "record", {
@@ -202,8 +174,8 @@ export class Model {
       value: {}
     })
 
-    // Extract the timestamps declaration from the schema
-    const { _timestamps, ...schema } = model.schema;
+    // Extract the timestamps and key declaration from the schema
+    const { _timestamps, _key, ...schema } = model.schema;
     setReadOnlyProps(params, _timestamps, modelName, this);
     setWriteableProps(params, schema, this);
   }
@@ -264,7 +236,7 @@ export class Model {
   }
   static create(){
     return attrs=>{
-      const model = eval(this.constructor.name),
+      const model = flute.models[this.constructor.name],
             record = new model(attrs)
       return record.save()
     }
@@ -280,8 +252,6 @@ export class Model {
   static routes = {}
   static store = { singleton: false }
 }
-
-const actionMatch = /^@FLUTE_(SET|GET|POST|PUT|DELETE|REQUEST_INFO|SAVE)(_TMP)?(_SUCCESS)?_(.*)$/
 
 export const reducer = (state = flute.buildInitialState(), { type,record=null,tmpRecord=null,requestStatus=null,requestBody=null,errors={} })=>{
   // If this is a flute action
@@ -405,3 +375,4 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
 
 // Documentation notes
 // id is the default key, which works for id and _id ... passing _id as the default key will not work as _id is converted to id
+// Add the ability to define the plural version of the model in the model definition ...

@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { Flute, Model } from "../src"
+import flute, { Model } from "../src"
 import {
   isEmptyObject, generateID, pruneDeep,
   pruneArray, regexIndexOf, checkResponseStatus,
@@ -7,6 +7,8 @@ import {
   interpolateRoute, delimiterType, setReadOnlyProps,
   setWriteableProps, mergeRecordsIntoCache, createThisRecord
 } from "../src/utils"
+
+import { singleRecordProps } from "../src/constants"
 
 describe("Utils", ()=>{
   describe("#isEmptyObject", ()=>{
@@ -346,35 +348,65 @@ describe("Utils", ()=>{
   });
 
   describe("#mergeRecordsIntoCache", ()=>{
-//     const fluteTest = new Flute();
-//     fluteTest.model(class Person extends Model { static schema = { name: String, age: Number }});
-//     const Person = fluteTest.model("Person");
-//
-//   const first = new Person({ name:"Kyle", _id:"582d28ea95686f2c5a6a0025" });
-// //          defaultCache = [{ record: { ...first.record, ...first.timestamps }}]
-//
+    class Person extends Model {
+      static schema = {
+        name: String,
+        age: Number
+      }
+    }
+    flute.model(Person);
+    class Invitation extends Model {
+      static schema = {
+        email: String,
+        name: String,
+        _key: "email"
+      }
+    }
+    flute.model(Invitation);
+
+    const PersonModel = flute.model("Person"),
+          firstExistingRecord = new PersonModel({ name:"Kyle", _id:"582d28ea95386f2c5a6a0025" }),
+          defaultCache = [{ ...singleRecordProps, record: {...firstExistingRecord.record} }],
+          InvitationModel = flute.model("Invitation"),
+          firstExistingInvitationRecord = new InvitationModel({ name:"Kyle", email:"kyle@kyle.com" }),
+          secondExistingInvitationRecord = new InvitationModel({ name:"Jim", email:"jim@jim.com" }),
+          defaultInvitationCache = [
+            { ...singleRecordProps, record: {...firstExistingInvitationRecord.record} },
+            { ...singleRecordProps, record: {...secondExistingInvitationRecord.record} }
+          ];
+
     it("should add previously non-existant records in the cache", ()=>{
-      // const records = [{ name:"Jim", _id:"582d28ea95386f2c5a6a0025" }],
-      //       newCache = mergeRecordsIntoCache(defaultCache, records, "id", fluteTest.model("Person"))
-      // expect(newCache.length).to.equal(2)
+      const records = [{ name:"Jim", _id:"582d28ea95386f2c5a6a0026" }],
+            newCache = mergeRecordsIntoCache(defaultCache, records, "id", PersonModel);
+      expect(newCache.length).to.equal(2)
     });
 
     it("should replace previously existant records in the cache", ()=>{
-      
+      const records = [{ name:"Jim", _id:"582d28ea95386f2c5a6a0025" }],
+            newCache = mergeRecordsIntoCache(defaultCache, records, "id", PersonModel);
+
+      expect(newCache.length).to.equal(1)
+      expect(newCache[0].record.name).to.equal("Jim")
     });
 
     it("should add singleRecordProps to the record in the cache", ()=>{
-      
+      const records = [{ name:"Jim", _id:"582d28ea95386f2c5a6a0026" }],
+            newCache = mergeRecordsIntoCache([], records, "id", PersonModel);
+      expect(newCache[0]).to.have.all.keys(Object.keys(singleRecordProps))
     });
 
     it("should honor the keyString for selecting which records need to be removed", ()=>{
-      
+      const records = [{ name:"Jimothy", email:"jim@jim.com" }],
+            newCache = mergeRecordsIntoCache(defaultInvitationCache, records, "email", InvitationModel),
+            jimRecord = newCache.filter(i=>(i.record.email == "jim@jim.com"))[0];
+      expect(jimRecord.record.name).to.equal("Jimothy");
     });
 
     it("should leave the object alone and return a new object", ()=>{
-      const oldState = { cache: [ {  } ]  }
-      expect(oldState).to.deep.equal(oldState)
+      const records = [{ name:"Kyle T.", _id:"582d28ea95386f2c5a6a0025" }],
+            recordBeforeMerge = {...defaultCache[0]};
+      mergeRecordsIntoCache(defaultCache, records, "id", PersonModel);
+      expect(recordBeforeMerge).to.deep.equal(defaultCache[0])
     });
-
   });
 });
