@@ -376,3 +376,6 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
 // Documentation notes
 // id is the default key, which works for id and _id ... passing _id as the default key will not work as _id is converted to id
 // Add the ability to define the plural version of the model in the model definition ...
+//Test:should create properties according to schema, giving a null value if not defined
+// Eventually, provide a way to add a default value to the model definition ... so this test can read:
+//Test:should create properties according to schema, giving a null OR DEFAULT value if not defined

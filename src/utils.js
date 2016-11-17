@@ -122,7 +122,7 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
     })
     // Handle the createdAt
     // Let it be undefined if nothing was given
-    _obj.timestamps.createdAt = params.created_at || params.createdAt
+    _obj.timestamps.createdAt = params.created_at || params.createdAt || null
     Object.defineProperty(_obj, "createdAt", {
       get: ()=>(_obj.timestamps.createdAt ? new Date(_obj.timestamps.createdAt) : null),
       // createdAt can only be set on instantiation, otherwise it stays undefined
@@ -131,7 +131,7 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
 
     // Handle the updatedAt
     // Let it be undefined if nothing was given
-    _obj.timestamps.updatedAt = params.updated_at || params.updatedAt
+    _obj.timestamps.updatedAt = params.updated_at || params.updatedAt || null
     Object.defineProperty(_obj, "updatedAt", {
       get: ()=>(_obj.timestamps.updatedAt ? new Date(_obj.timestamps.updatedAt) : null),
       // updatedAt can only be set on instantiation, otherwise it stays undefined
@@ -180,8 +180,8 @@ export function mergeRecordsIntoCache(cache, records, keyStr, model) {
   return [].concat(filteredCache, recordsForCache);
 }
 
-export function createThisRecord(model, item) {
-  const newInstance = new model(item)
+export function createThisRecord(model, rawRecord) {
+  const newInstance = new model(rawRecord)
   return { ...newInstance.record, ...newInstance.timestamps }
 }
 

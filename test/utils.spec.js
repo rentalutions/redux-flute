@@ -5,10 +5,11 @@ import {
   pruneArray, regexIndexOf, checkResponseStatus,
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
-  setWriteableProps, mergeRecordsIntoCache, createThisRecord
+  setWriteableProps, mergeRecordsIntoCache, createThisRecord,
+  tmpRecordProps
 } from "../src/utils"
 
-import { singleRecordProps } from "../src/constants"
+import { singleRecordProps, versioningProps, recordProps } from "../src/constants"
 
 describe("Utils", ()=>{
   describe("#isEmptyObject", ()=>{
@@ -407,6 +408,38 @@ describe("Utils", ()=>{
             recordBeforeMerge = {...defaultCache[0]};
       mergeRecordsIntoCache(defaultCache, records, "id", PersonModel);
       expect(recordBeforeMerge).to.deep.equal(defaultCache[0])
+    });
+  });
+
+  describe("#createThisRecord", ()=>{
+    class Collaborator extends Model {
+      static schema = {
+        storyId: String,
+        userId: String,
+        _timestamps: true
+      }
+    }
+    flute.model(Collaborator);
+    const CollaboratorModel = flute.model("Collaborator")
+
+    it("should the appropriate properties for a model type", ()=>{
+      const recordForStore = createThisRecord(CollaboratorModel,{ _id:"id1", storyId:"id2", userId:"id3" });
+      expect(recordForStore).to.deep.equal({ id: "id1", storyId: "id2", userId: "id3", createdAt: null, updatedAt: null })
+    });
+    it("should create properties according to schema, giving a null value if not defined", ()=>{
+      const recordForStore = createThisRecord(CollaboratorModel,{ _id:"id1", userId:"id3" });
+      expect(recordForStore).to.have.property("storyId")
+      expect(recordForStore.storyId).to.equal(null)
+    });
+  });
+
+  describe("#tmpRecordProps", ()=>{
+    it("should return an object with the correct properties for a temporary record", ()=>{
+      expect(tmpRecordProps()).to.be.an("object")
+      expect(tmpRecordProps()).to.have.keys(Object.keys({...versioningProps, ...recordProps, creating:"", id:"" }))
+    });
+    it("should create a unique ID every time", ()=>{
+      expect(tmpRecordProps().id).to.not.equal(tmpRecordProps().id)
     });
   });
 });
