@@ -5,7 +5,7 @@ import {
   pruneArray, regexIndexOf, checkResponseStatus,
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
-  setWriteableProps, mergeRecordsIntoCache
+  setWriteableProps, mergeRecordsIntoCache, createThisRecord
 } from "./utils"
 
 export class Flute {
@@ -292,7 +292,7 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
         modelName = Sugar.String.camelize(actionModelName),
         model = flute.models[modelName],
         { singleton } = model.store,
-        { keyStr } = model.schema._key || "id",
+        keyStr = model.schema._key || "id",
         newState = {...state};
 
   switch (internalAction) {
@@ -309,7 +309,7 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
           newState[modelName].record = record
           newState[modelName].version = 0
         } else {
-          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr)
+          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr, model)
         }
       }
       else if(!singleton && record[keyStr]) {
@@ -330,11 +330,11 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
       if (isSuccessful && record) {
         // If this is singleton, update the main record
         if (singleton){
-          newState[modelName].record = record
+          newState[modelName].record = createThisRecord(model, item)
           newState[modelName].version = 0
           // If it's a traditional cache, add the results to the index
         } else {
-          const recordsForCache = [].concat(record).map(item=>({...singleRecordProps, record: item}));
+          const recordsForCache = [].concat(record).map(item=>({...singleRecordProps, record: createThisRecord(model, item) }));
           newState[modelName].cache = [].concat(newState[modelName].cache, recordsForCache)
         }
       }
@@ -345,10 +345,10 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
       if (isSuccessful && record) {
         // If the model is a singleton, easy update the record
         if (singleton) {
-          newState[modelName].record = record
+          newState[modelName].record = createThisRecord(model, item)
           newState[modelName].version = 0
         } else {
-          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr)
+          newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr, model)
         }
       }
       else if(!singleton && record[keyStr]) {
@@ -372,7 +372,9 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
           newState[modelName].version = 0
         } else {
           // For traditional cache's, filter the record out
-          newState[modelName].cache = newState[modelName].cache.filter(item=>(item.record[keyStr] !== record[keyStr]))
+          newState[modelName].cache = newState[modelName].cache.filter(item=>{
+            return item.record[keyStr] !== record[keyStr]
+          })
         }
       } else if (!singleton && record[keyStr]) {
         //This is the start of the request, so mark a record for deletion
@@ -400,3 +402,6 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
   }
   return newState;
 }
+
+// Documentation notes
+// id is the default key, which works for id and _id ... passing _id as the default key will not work as _id is converted to id

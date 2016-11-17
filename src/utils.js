@@ -101,13 +101,13 @@ export function delimiterType(delim="") {
   return "dasherize"
 }
 
-export function setReadOnlyProps(params, _timestamps, modelName, _this){
+export function setReadOnlyProps(params, _timestamps, modelName, _obj){
   const { id, _id } = params;
   // Establish the ID, also _id
-  if (id || _id) _this.record.id = id || _id;
+  if (id || _id) _obj.record.id = id || _id;
 
-  Object.defineProperty(_this, "id", {
-    get: ()=>(_this.record.id || null),
+  Object.defineProperty(_obj, "id", {
+    get: ()=>(_obj.record.id || null),
     // ID can only be set on instantiation, otherwise it stays undefined
     set: ()=>{throw new TypeError(`#<${modelName}> property \`id\` cannot be redefined.`)}
   })
@@ -115,56 +115,56 @@ export function setReadOnlyProps(params, _timestamps, modelName, _this){
   if (_timestamps) {
     // Timestamps aren't something we're going to ever
     // update on the record, so let's separate it early on
-    Object.defineProperty(_this, "timestamps", {
+    Object.defineProperty(_obj, "timestamps", {
       enumerable: false,
       value: {}
     })
     // Handle the createdAt
     // Let it be undefined if nothing was given
-    _this.timestamps.createdAt = params.created_at || params.createdAt
-    Object.defineProperty(_this, "createdAt", {
-      get: ()=>(_this.timestamps.createdAt ? new Date(_this.timestamps.createdAt) : null),
+    _obj.timestamps.createdAt = params.created_at || params.createdAt
+    Object.defineProperty(_obj, "createdAt", {
+      get: ()=>(_obj.timestamps.createdAt ? new Date(_obj.timestamps.createdAt) : null),
       // createdAt can only be set on instantiation, otherwise it stays undefined
       set: ()=>{throw new TypeError(`#<${modelName}> property \`createdAt\` cannot be redefined.`)}
     })
 
     // Handle the updatedAt
     // Let it be undefined if nothing was given
-    _this.timestamps.updatedAt = params.updated_at || params.updatedAt
-    Object.defineProperty(_this, "updatedAt", {
-      get: ()=>(_this.timestamps.updatedAt ? new Date(_this.timestamps.updatedAt) : null),
+    _obj.timestamps.updatedAt = params.updated_at || params.updatedAt
+    Object.defineProperty(_obj, "updatedAt", {
+      get: ()=>(_obj.timestamps.updatedAt ? new Date(_obj.timestamps.updatedAt) : null),
       // updatedAt can only be set on instantiation, otherwise it stays undefined
       set: ()=>{throw new TypeError(`#<${modelName}> property \`updatedAt\` cannot be redefined.`)}
     })
   }
 }
 
-export function setWriteableProps(params, schema, _this){
+export function setWriteableProps(params, schema, _obj){
   for (let prop in schema){
-    const initialValue = params[prop] || null;
-    _this.record[prop] = initialValue
+    const initialValue = params.hasOwnProperty(prop) ? params[prop] : null;
+    _obj.record[prop] = initialValue
 
-    let get = ()=>(_this.record[prop])
+    let get = ()=>(_obj.record[prop])
     // @TODO: The set function should dispatch an action that something was set, which
     // would be used to increase the version number, and thus invalidate errors
-    let set = (newValue)=>(_this.record[prop] = newValue)
+    let set = (newValue)=>(_obj.record[prop] = newValue)
 
     if (schema[prop].name === "Date")
-      get = ()=> (_this.record[prop] === null ? null : new Date(_this.record[prop]))
+      get = ()=> (_obj.record[prop] === null ? null : new Date(_obj.record[prop]))
     if (schema[prop].name === "Number")
-      get = ()=> (_this.record[prop] === null ? null : Number(_this.record[prop]))
+      get = ()=> (_obj.record[prop] === null ? null : Number(_obj.record[prop]))
     if (schema[prop].name === "Boolean") {
-      if (_this.record[prop] !== null) {
-        _this.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
+      if (_obj.record[prop] !== null) {
+        _obj.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
       }
-      set = (newValue)=> (_this.record[prop] = newValue === "false" ? false : Boolean(newValue))
+      set = (newValue)=> (_obj.record[prop] = newValue === "false" ? false : Boolean(newValue))
     }
 
-    Object.defineProperty(_this, prop, { get, set })
+    Object.defineProperty(_obj, prop, { get, set })
   }
 }
 
-export function mergeRecordsIntoCache(cache, records, keyStr) {
+export function mergeRecordsIntoCache(cache, records, keyStr, model) {
   // First remove anything in the cache that matches keys in the records
   const filteredCache = cache.filter(cacheItem=>{
           let match = false;
@@ -174,7 +174,12 @@ export function mergeRecordsIntoCache(cache, records, keyStr) {
           return !match;
         }),
         // Get the records ready for the cache
-        recordsForCache = records.map(record=>({...singleRecordProps, record}));
+        recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)}));
   // Finally, merge the new records and the filtered records
   return [].concat(filteredCache, recordsForCache);
+}
+
+export function createThisRecord(model, item) {
+  const newInstance = new model(item)
+  return { ...newInstance.record, ...newInstance.timestamps }
 }

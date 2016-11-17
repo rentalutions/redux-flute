@@ -1,10 +1,11 @@
 import { expect } from "chai"
+import { Flute, Model } from "../src"
 import {
   isEmptyObject, generateID, pruneDeep,
   pruneArray, regexIndexOf, checkResponseStatus,
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
-  setWriteableProps, mergeRecordsIntoCache
+  setWriteableProps, mergeRecordsIntoCache, createThisRecord
 } from "../src/utils"
 
 describe("Utils", ()=>{
@@ -287,11 +288,93 @@ describe("Utils", ()=>{
   });
 
   describe("#setWriteableProps", ()=>{
-    
+    const schema = {
+            name: String,
+            birthday: Date,
+            admin: Boolean,
+            attractiveness: Number
+          }
+    it("should not add properties that don't exist in the schema", ()=>{
+      const toMutate = { record:{} }, toMutate2 = { record:{} }
+      setWriteableProps({ gender: "male" }, schema, toMutate)
+      expect(toMutate.gender).to.be.an("undefined")
+    });
+
+    it("should set properties in schema to null as a default value", ()=>{
+      const toMutate = { record:{} }
+      setWriteableProps({}, schema, toMutate)
+      expect(toMutate.name).to.equal(null)
+      expect(toMutate.birthday).to.equal(null)
+      expect(toMutate.admin).to.equal(null)
+      expect(toMutate.attractiveness).to.equal(null)
+    });
+
+    it("should return a date if the schema type is Date", ()=>{
+      const toMutate = { record:{} }
+      setWriteableProps({ birthday:"Apr 13, 1988" }, schema, toMutate)
+      expect(toMutate.birthday).to.be.a("date")
+    });
+
+    it("should force a number value if the schema type is Number", ()=>{
+      const toMutate = { record:{} }
+      setWriteableProps({ attractiveness:"6" }, schema, toMutate)
+      expect(toMutate.attractiveness).to.be.a("number")
+    });
+    it("should force a boolean value if the schema type is Boolean", ()=>{
+      const toMutate = { record:{} },
+            toMutate2 = { record:{} },
+            toMutate3 = { record:{} },
+            toMutate4 = { record:{} }
+
+      setWriteableProps({ admin:0 }, schema, toMutate)
+      expect((toMutate.admin).toString()).to.equal("false")
+
+      setWriteableProps({ admin:1 }, schema, toMutate2)
+      expect((toMutate2.admin).toString()).to.equal("true")
+
+      setWriteableProps({ admin:true }, schema, toMutate3)
+      expect((toMutate3.admin).toString()).to.equal("true")
+
+      setWriteableProps({ admin:"true" }, schema, toMutate4)
+      expect((toMutate4.admin).toString()).to.equal("true")
+    });
+    it("should convert the string `false` to a false value if the schema type is Boolean", ()=>{
+      const toMutate = { record:{} }
+      setWriteableProps({ admin:"false" }, schema, toMutate)
+      expect((toMutate.admin).toString()).to.equal("false")
+    });
   });
 
   describe("#mergeRecordsIntoCache", ()=>{
-    
+//     const fluteTest = new Flute();
+//     fluteTest.model(class Person extends Model { static schema = { name: String, age: Number }});
+//     const Person = fluteTest.model("Person");
+//
+//   const first = new Person({ name:"Kyle", _id:"582d28ea95686f2c5a6a0025" });
+// //          defaultCache = [{ record: { ...first.record, ...first.timestamps }}]
+//
+    it("should add previously non-existant records in the cache", ()=>{
+      // const records = [{ name:"Jim", _id:"582d28ea95386f2c5a6a0025" }],
+      //       newCache = mergeRecordsIntoCache(defaultCache, records, "id", fluteTest.model("Person"))
+      // expect(newCache.length).to.equal(2)
+    });
+
+    it("should replace previously existant records in the cache", ()=>{
+      
+    });
+
+    it("should add singleRecordProps to the record in the cache", ()=>{
+      
+    });
+
+    it("should honor the keyString for selecting which records need to be removed", ()=>{
+      
+    });
+
+    it("should leave the object alone and return a new object", ()=>{
+      const oldState = { cache: [ {  } ]  }
+      expect(oldState).to.deep.equal(oldState)
+    });
+
   });
 });
-
