@@ -12,7 +12,7 @@ import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs
 export class Flute {
   constructor(){
     this.models = {}
-    this.apiPrefix = "/"
+    this.apiPrefix = ""
     this.apiDelimiter = "-"
     this.apiHeaders = {
       // SHOULD BE ABLE TO PASS IN CUSTOM HEADERS BY SETTING IT IN THE API SETTER
@@ -54,7 +54,7 @@ export class Flute {
 
   getRoute({ routes, name }, method, record){
     /*
-      Get path should now lookup on the model itself for a path
+      Get route should now lookup on the model itself for a path
       or if the path is allowed .. and if not, generate the path
       It should also interpolate the correct information like
       :id from the params
@@ -81,14 +81,29 @@ export class Flute {
         fetch(route, { method, body, headers, credentials })
           .then(checkResponseStatus)
           // Parse JSON
-          .then(res=>(res.json()))          
+          .then(res=>(res.json()))
           .then(data=>{
             const newModel = new model(data)
             this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:data })
             resolve(newModel)
           })
           // Still need to handle errors, which means parsing the json and dispatching the correct actions
-          .catch(e=>error(e))
+          .catch(e=>{
+            // .then(res=>(res.json()))
+            // No matter what, there was an error, so we will need:
+            //the requestStatus ... 404, 403, 500
+            //the requestBody ... Not saved. Parsed from the JSON of the response ... if any
+            //errors ... an object of errors from the API ... if any
+
+            //If the record existed (PUT), update the information for that particular record
+            //And let the reducer handle if the record is a singleton or not
+            //If the record was a create (POST), create a tmpRecord with the request info
+            //If that happens, successful saving of that record should remove this tmpRecord from the store
+            //If that happens, the current record should be hydrated with the same information
+
+            //this.dispatch({type: `@FLUTE_${method}_REQUEST_INFO_${modelTypeForAction}` })
+            error(e)
+          })
       }
       catch(e) { error(e) }
     })
@@ -214,16 +229,12 @@ export class Model {
       })
     }
   }
-  get validate(){
-    return (includingServerValidations)=>{
-      return new Promise((res,err)=>{
-        setTimeout(()=>{
-          if (Math.random() < 0.5) return res(this);
-          err("woops!")
-        },1000)
-      })
-    }
-  }
+  // get validate(){
+  //   return (includingServerValidations)=>{
+  //     return new Promise((res,err)=>{
+  //     })
+  //   }
+  // }
   get destroy(){
     return ()=>{
       return new Promise((resolve,error)=>{
@@ -234,21 +245,10 @@ export class Model {
       })
     }
   }
-  static create(){
-    return attrs=>{
-      const model = flute.models[this.constructor.name],
-            record = new model(attrs)
-      return record.save()
-    }
+  static create(attrs){
+    return new flute.models[this.name](attrs).save()
   }
-  static all(callback){
-    //Returns all users from index
-    setTimeout(()=>{
-      if (typeof callback === "function") {
-        callback(["User1","User2"])
-      }
-    },1000)
-  }
+  static all(callback){}
   static routes = {}
   static store = { singleton: false }
 }
