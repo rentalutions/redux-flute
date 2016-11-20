@@ -56,9 +56,9 @@ The nice-to-haves are:
 
 I'm open to suggestion on making this library more widely supported.
 
-### Minimum Setup
+# Minimum Setup
 
-#### Defining Models
+### Defining Models
 ```js
 // In a file like /models/Story.js
 import flute, { Model } from "redux-flute";
@@ -74,7 +74,7 @@ class Story extends Model {
 export default flute.model(Story);
 ```
 
-#### In your reducers setup
+### In your reducers setup
 ```js
 // In a file like /reducers.js
 import { combineReducers } from "redux"
@@ -87,7 +87,7 @@ export default combineReducers({
 });
 ```
 
-#### In your store setup
+### In your store setup
 ```js
 // In a file like /store.js
 import { createStore, applyMiddleware, compose } from "redux";
