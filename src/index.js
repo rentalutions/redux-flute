@@ -42,17 +42,14 @@ export class Flute {
     this.models[model.name] = model;
   }
 
-  setAPI({ prefix=this.apiPrefix,
-           delimiter=this.apiDelimiter,
-           headers=this.apiHeaders,
-           credentials=this.apiCredentials }){
+  setAPI({ prefix=this.apiPrefix, delimiter=this.apiDelimiter, headers=this.apiHeaders, credentials=this.apiCredentials }){
     this.apiPrefix = prefix;
     this.apiDelimiter = delimiter;
     Object.assign(this.apiHeaders, headers);
     this.apiCredentials = credentials;
   }
 
-  getRoute({ routes, name }, method, record){
+  getRoute({ routes, name }, method, record={}){
     /*
       Get route should now lookup on the model itself for a path
       or if the path is allowed .. and if not, generate the path
@@ -60,7 +57,7 @@ export class Flute {
       :id from the params
     */
     if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model #<${name}>. Check the #<${name}> route configuration.`)
-    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix)
+    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id)
     return interpolateRoute(route, record)
   }
 
@@ -125,6 +122,38 @@ export class Flute {
     modelInstance._version += 1
     if (this.checkForDispatch())
       this.dispatch({ type: `@FLUTE_SET_${modelTypeForAction}`, record:recordForAction })
+  }
+
+  getModel(model, id=false){
+    return new Promise((resolve, error)=>{
+      try {
+        const modelType = model.name,
+              modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
+              method = "GET",
+              route = this.getRoute(model, method, { id }),
+              headers = this.apiHeaders,
+              credentials = this.apiCredentials;
+
+        if (this.checkForDispatch())
+          this.dispatch({ type: `@FLUTE_${method}_${modelTypeForAction}`})
+        fetch(route, { method, headers, credentials })
+          .then(checkResponseStatus)
+          .then(res=>(res.json()))
+          .then(data=>{
+            this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:data })
+            const instantiatedModels = [].concat(data).map(recordRetrieved=>(new model(recordRetrieved)))
+            if (id) resolve(instantiatedModels[0])
+            else resolve(instantiatedModels)
+          })
+          .catch(e=>{
+            const action = { type: `@FLUTE_REQUEST_INFO_${modelTypeForAction}` }
+            if (id) action["record"] = { id }
+            this.dispatch(action)
+            error(e)
+          })
+      }
+      catch(e) { error(e) }
+    })
   }
 
   destroyModel(modelType, record){
@@ -251,12 +280,6 @@ export class Model {
       })
     }
   }
-  // get validate(){
-  //   return (includingServerValidations)=>{
-  //     return new Promise((res,err)=>{
-  //     })
-  //   }
-  // }
   get destroy(){
     return ()=>{
       return new Promise((resolve,error)=>{
@@ -270,35 +293,15 @@ export class Model {
   static create(attrs){
     return new flute.models[this.name](attrs).save()
   }
-  static all(){
-    // Will retrieve an index from the API as an array
-    return options=>{
-      return new Promise((resolve, error)=>{
-        
-      })
-    }
-  }
-  static find(){
-    // Will retrieve a single record by the model's key
-    return options=>{
-      return new Promise((resolve, error)=>{
-        
-      })
-    }
-  }
-  static where(){
-    // Will retrieve an array of records from the cache, filtered by a simple query
-    return options=>{
-      return new Promise((resolve, error)=>{
-        
-      })
-    }
-  }
+  // Will retrieve an index from the API as an array
+  static all(options){ return flute.getModel(this) }
+  // Will retrieve a single record by the model's key
+  static find(keyStr){ return flute.getModel(this,keyStr) }
   static routes = {}
   static store = { singleton: false }
 }
 
-export const reducer = (state = flute.buildInitialState(), { type, record=null, _request={}, errors={} })=>{
+export const reducer = (state = flute.buildInitialState(), { type, record=null, _request={...versioningProps._request}, errors={} })=>{
   // If this is a flute action
   if (regexIndexOf(actionMatch, type) === -1) return state
 
@@ -333,13 +336,13 @@ export const reducer = (state = flute.buildInitialState(), { type, record=null, 
       if (isSuccessful && record) {
         // If the model is a singleton, easy update the record
         if (singleton) {
-          newState[modelName].record = record
+          newState[modelName].record = record instanceof Array ? record[0] : record
           newState[modelName].version = 0
         } else {
           newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr, model)
         }
       }
-      else if(!singleton && record[keyStr]) {
+      else if(!singleton && record && record[keyStr]) {
         // It is the start of a get request, so if there is record
         // Set that record's getting prop to true
         newState[modelName].cache = newState[modelName].cache.map(item=>{

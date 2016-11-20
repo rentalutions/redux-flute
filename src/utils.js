@@ -111,12 +111,22 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
   if (id || _id) _obj.record.id = id || _id;
 
   Object.defineProperty(_obj, "id", {
+    enumerable: true,
     get: ()=>(_obj.record.id || null),
     // ID can only be set on instantiation, otherwise it stays undefined
     set: ()=>{throw new TypeError(`#<${modelName}> property \`id\` cannot be redefined.`)}
   })
 
-  _obj._version = params._version || 0;
+  const defineVersion = function(newValue){
+    delete this._version;
+    Object.defineProperty(this, "_version", {
+      enumerable: false,
+      configurable: true,
+      get:()=>(newValue || 0),
+      set:defineVersion.bind(this)
+    })
+  }
+  defineVersion.call(_obj, params._version)
 
   Object.defineProperty(_obj, "_request", {
     enumerable: false,
@@ -158,6 +168,7 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
     // Let it be undefined if nothing was given
     _obj.timestamps.createdAt = params.created_at || params.createdAt || null
     Object.defineProperty(_obj, "createdAt", {
+      enumerable: true,
       get: ()=>(_obj.timestamps.createdAt ? new Date(_obj.timestamps.createdAt) : null),
       // createdAt can only be set on instantiation, otherwise it stays undefined
       set: ()=>{throw new TypeError(`#<${modelName}> property \`createdAt\` cannot be redefined.`)}
@@ -167,6 +178,7 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
     // Let it be undefined if nothing was given
     _obj.timestamps.updatedAt = params.updated_at || params.updatedAt || null
     Object.defineProperty(_obj, "updatedAt", {
+      enumerable: true,
       get: ()=>(_obj.timestamps.updatedAt ? new Date(_obj.timestamps.updatedAt) : null),
       // updatedAt can only be set on instantiation, otherwise it stays undefined
       set: ()=>{throw new TypeError(`#<${modelName}> property \`updatedAt\` cannot be redefined.`)}
@@ -201,7 +213,7 @@ export function setWriteableProps(params, schema, _obj){
       }
     }
 
-    Object.defineProperty(_obj, prop, { get, set })
+    Object.defineProperty(_obj, prop, { get, set, enumerable: true })
   }
 }
 
