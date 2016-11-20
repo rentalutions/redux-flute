@@ -62,9 +62,12 @@ export function regexIndexOf(regex, string, startpos=0){
 export function checkResponseStatus(response){
   const {status} = response,
         error = new Error;
+  // If no error, great, return the response.
   if (status >= 200 && status < 300)
     return response
-  error.message = response.statusText
+
+  // Begin parsing this error
+  error.status = status
   error.response = response
   throw error
 }
@@ -113,6 +116,37 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
     set: ()=>{throw new TypeError(`#<${modelName}> property \`id\` cannot be redefined.`)}
   })
 
+  _obj._version = params._version || 0;
+
+  Object.defineProperty(_obj, "_request", {
+    enumerable: false,
+    value:{
+      version: 0,
+      status: null,
+      body: null,
+      ...params._request
+    }
+  })
+  Object.defineProperty(_obj._request, "clear", {
+    enumerable: false,
+    value: ()=>{
+      for (let property in _obj._request) {
+        if (property != "clear" && property != "version")
+          _obj._request[property] = null
+        if (property == "version")
+          _obj._request[property] = 0
+      }
+    }
+  })
+  Object.defineProperty(_obj, "errors", {
+    enumerable: false,
+    value:{...params.errors}
+  })
+  Object.defineProperty(_obj.errors, "clear", {
+    enumerable: false,
+    value: ()=>{for (let property in _obj.errors) if (property != "clear") delete _obj.errors[property]}
+  })
+
   if (_timestamps) {
     // Timestamps aren't something we're going to ever
     // update on the record, so let's separate it early on
@@ -148,7 +182,10 @@ export function setWriteableProps(params, schema, _obj){
     let get = ()=>(_obj.record[prop])
     // @TODO: The set function should dispatch an action that something was set, which
     // would be used to increase the version number, and thus invalidate errors
-    let set = (newValue)=>(_obj.record[prop] = newValue)
+    let set = (newValue)=>{
+      flute.setModel(_obj) //, prop, newValue)
+      return _obj.record[prop] = newValue
+    }
 
     if (schema[prop].name === "Date")
       get = ()=> (_obj.record[prop] === null ? null : new Date(_obj.record[prop]))
@@ -158,7 +195,10 @@ export function setWriteableProps(params, schema, _obj){
       if (_obj.record[prop] !== null) {
         _obj.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
       }
-      set = (newValue)=> (_obj.record[prop] = newValue === "false" ? false : Boolean(newValue))
+      set = (newValue)=>{
+        flute.setModel(_obj) //, prop, newValue)
+        return _obj.record[prop] = newValue === "false" ? false : Boolean(newValue)
+      }
     }
 
     Object.defineProperty(_obj, prop, { get, set })

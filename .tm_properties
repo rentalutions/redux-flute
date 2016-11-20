@@ -1,1 +1,2 @@
-excludeDirectories = "{$excludeDirectories,node_modules}"
+excludeDirectories = "{$excludeDirectories, node_modules, dist}"
+includeFiles = "{$includeFiles, .babelrc}"

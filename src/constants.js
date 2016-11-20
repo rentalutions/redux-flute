@@ -5,10 +5,12 @@ export const restVerbs = {
         deleting: false
       },
       versioningProps = {
-        version: 0,
-        requestVersion: null,
-        requestStatus: null,
-        requestBody: null,
+        _version: 0,
+        _request: {
+          version: null,
+          status: null,
+          body: null
+        }
       },
       recordProps = {
         record: {},
@@ -19,4 +21,4 @@ export const restVerbs = {
         ...versioningProps,
         ...recordProps
       },
-      actionMatch = /^@FLUTE_(SET|GET|POST|PUT|DELETE|REQUEST_INFO|SAVE)(_TMP)?(_SUCCESS)?_(.*)$/
+      actionMatch = /^@FLUTE_(SET|GET|POST|PUT|DELETE|REQUEST_INFO|SAVE)(_SUCCESS)?_(.*)$/

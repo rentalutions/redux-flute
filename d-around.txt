@@ -85,8 +85,6 @@ export default fluteConnect(({ Story })=>({ Story }))(class Index extends Compon
 // @FLUTE_DELETE_SUCCESS_STORY
 // @FLUTE_SET_STORY
 // @FLUTE_REQUEST_INFO_STORY
-// @FLUTE_SAVE_TMP_STORY
-// @FLUTE_REQUEST_INFO_TMP_STORY
 
 const demoModel = {
   getting: false,

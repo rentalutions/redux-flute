@@ -64,32 +64,40 @@ export class Flute {
     return interpolateRoute(route, record)
   }
 
-  saveModel(modelType, record){
+  saveModel(modelInstance){
     return new Promise((resolve, error)=>{
       try {
-        const model = this.models[modelType],
+        const modelType = modelInstance.constructor.name,
+              modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
+              model = this.models[modelType],
+              record = pruneDeep(modelInstance.record),
+              recordForAction = isEmptyObject(record) ? null : record,
+              { _version:version } = modelInstance,
               method = record.id ? "PUT" : "POST",
-              // THE PATH CAN BE SET MANUALLY IN THE MODEL CLASS OR GENERATED FOR EACH TYPE OF REQUEST
               route = this.getRoute(model, method, record),
               body = JSON.stringify(record),
               headers = this.apiHeaders,
-              credentials = this.apiCredentials,
-              recordForAction = record.id ? record : undefined,
-              modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase();
+              credentials = this.apiCredentials;
+
         if (this.checkForDispatch())
           this.dispatch({ type: `@FLUTE_${method}_${modelTypeForAction}`, record:recordForAction })
         fetch(route, { method, body, headers, credentials })
           .then(checkResponseStatus)
-          // Parse JSON
           .then(res=>(res.json()))
           .then(data=>{
-            const newModel = new model(data)
-            this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:data })
+            const newModelData = {...recordForAction, ...data},
+                  newModel = new model(newModelData);
+            this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:newModelData })
             resolve(newModel)
           })
-          // Still need to handle errors, which means parsing the json and dispatching the correct actions
-          .catch(e=>{
-            // .then(res=>(res.json()))
+          .catch(({ status, response })=>{
+              response.json().then(({ body="", errors={} })=>{
+              const requestInfo = { _request:{ version, status, body }, errors },
+                    newModelData = { ...recordForAction, ...requestInfo },
+                    newModel = new model(newModelData);
+              this.dispatch({ type: `@FLUTE_REQUEST_INFO_${modelTypeForAction}`, record:recordForAction, ...requestInfo })
+              error(newModel)
+            })
             // No matter what, there was an error, so we will need:
             //the requestStatus ... 404, 403, 500
             //the requestBody ... Not saved. Parsed from the JSON of the response ... if any
@@ -97,16 +105,26 @@ export class Flute {
 
             //If the record existed (PUT), update the information for that particular record
             //And let the reducer handle if the record is a singleton or not
-            //If the record was a create (POST), create a tmpRecord with the request info
-            //If that happens, successful saving of that record should remove this tmpRecord from the store
-            //If that happens, the current record should be hydrated with the same information
+            //Also return the request info along with the record in question
+            //If the record was a create (POST), create a new version of the model with the request info attached
 
             //this.dispatch({type: `@FLUTE_${method}_REQUEST_INFO_${modelTypeForAction}` })
-            error(e)
           })
       }
+      // Generic Client-side error handling
       catch(e) { error(e) }
     })
+  }
+
+  setModel(modelInstance){
+    const modelType = modelInstance.constructor.name,
+          modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
+          record = pruneDeep(modelInstance.record),
+          recordForAction = isEmptyObject(record) ? null : record;
+    // Bump version here (because of unsaved records)
+    modelInstance._version += 1
+    if (this.checkForDispatch())
+      this.dispatch({ type: `@FLUTE_SET_${modelTypeForAction}`, record:recordForAction })
   }
 
   destroyModel(modelType, record){
@@ -155,8 +173,7 @@ export class Flute {
         } else {
           state[model] = {
             ...restVerbs,
-            cache:[],
-            tmpCache:[]
+            cache:[]
           }
         }
       }
@@ -211,21 +228,26 @@ export class Model {
   get save(){
     return (options = {})=>{
       return new Promise((resolve,error)=>{
-        const modelType =  this.constructor.name,
-              record = pruneDeep(this.record);
-        flute.saveModel(modelType, record)
-          // A few things need to happen
-          // On success, it should dispatch the actions to put this new record in store
-          // it should send the response in the store and hydrate this record in place
-          // Errors should be populated automatically
-          .then(savedRecord=>{
-            // Copy the new properties to this instance
-            Object.assign(this.record, savedRecord.record)
-            if (savedRecord.timestamps)
-              Object.assign(this.timestamps, savedRecord.timeStamps)
-            resolve(this)
-          })
-          .catch(e=>error(e))
+        flute.saveModel(this)
+        .then(savedRecord=>{
+          // Copy the new properties to this instance
+          Object.assign(this.record, savedRecord.record)
+          this._version = 0
+          this._request.clear()
+          this.errors.clear()
+          if (savedRecord.timestamps)
+            Object.assign(this.timestamps, savedRecord.timestamps)
+          resolve(this)
+        })
+        .catch(e=>{
+          if (e instanceof Model) {
+            this._request.clear()
+            Object.assign(this._request, e._request)
+            this.errors.clear()
+            Object.assign(this.errors, e.errors)
+          }
+          error(e)
+        })
       })
     }
   }
@@ -253,12 +275,12 @@ export class Model {
   static store = { singleton: false }
 }
 
-export const reducer = (state = flute.buildInitialState(), { type,record=null,tmpRecord=null,requestStatus=null,requestBody=null,errors={} })=>{
+export const reducer = (state = flute.buildInitialState(), { type, record=null, _request={}, errors={} })=>{
   // If this is a flute action
   if (regexIndexOf(actionMatch, type) === -1) return state
 
   // Extract the action's info
-  const [,internalAction, isTemp=false, isSuccessful=false, actionModelName] = type.match(actionMatch),
+  const [,internalAction, isSuccessful=false, actionModelName] = type.match(actionMatch),
         modelName = Sugar.String.camelize(actionModelName),
         model = flute.models[modelName],
         { singleton } = model.store,
@@ -267,7 +289,19 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
 
   switch (internalAction) {
     case "SET":
-      //Check if temp
+      if (record && record[keyStr]) {
+        if (singleton) {
+          newState[modelName]._version += 1
+        } else {
+          newState[modelName].cache = newState[modelName].cache.map(item=>{
+            if (item.record[keyStr] === record[keyStr]) {
+              item._version += 1
+              return { ...item }
+            }
+            return item
+          })
+        }
+      }
       break;
     case "GET":
       // Set the model getting state
@@ -292,7 +326,6 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
             return item
         })
       }
-
       break;
     case "POST":
       newState[modelName] = { ...state[modelName], posting:!isSuccessful }
@@ -364,10 +397,20 @@ export const reducer = (state = flute.buildInitialState(), { type,record=null,tm
         putting: false,
         deleting: false
       }
-      //Check if temp
-      break;
-    case "SAVE":
-      //Already temp
+      // We only care about permanent records (for now)
+      if (record && record[keyStr]) {
+        if (singleton) {
+          newState[modelName]._request = _request
+          newState[modelName].errors = errors
+        } else {
+          newState[modelName].cache = newState[modelName].cache.map(item=>{
+            if (item.record[keyStr] === record[keyStr]) {
+              return { ...item, _request, errors }
+            }
+            return item
+          })
+        }
+      }
       break;
   }
   return newState;
