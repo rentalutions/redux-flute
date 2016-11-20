@@ -58,6 +58,25 @@ I'm open to suggestion on making this library more widely supported.
 
 # Minimum Setup
 
+### In your app
+```js
+import flute from "redux-flute";
+const Story = flute.model("Story"),
+
+const newStory = new Story;
+newStory.save().then(savedRecord=>(this.setState({ ...savedRecord }));
+// Also works ...
+Story.create({ title: "A working title", body: "Once upon a time..."})  // Makes an API request
+  .then(savedRecord=>(this.setState({ ...savedRecord }));  // Returns a promise ... as do the following methods
+newStory.updateAttribute("title", "A working title") // Makes an API request
+newStory.updateAttributes({ title: "A working title", body: "Once upon a time..."})  // Makes an API request
+
+newStory.destroy() // Makes an API request
+
+Story.all() // Makes an API request to the model's index, returns array of records
+Story.find("583132c8edc3b79a853b8d69") // Makes an API request to this resource, returns single record
+```
+
 ### Defining Models
 ```js
 // In a file like /models/Story.js
