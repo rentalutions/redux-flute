@@ -43,3 +43,55 @@ userAddress.destroy()
 
     npm install --save-dev redux-flute
     
+### Prerequisites
+This library was made to solve problems in my current project stacks (insert buzz words: React/Redux/Webpack/ES6). The only real assumptions are:
+
+ - You are using NPM as a package manager
+ - You are using Redux
+
+The nice-to-haves are:
+
+ - React
+ - React Redux
+
+I'm open to suggestion on making this library more widely supported.
+
+### Minimum Setup
+
+#### Defining Models
+```js
+// In a file like /models/Story.js
+import flute, { Model } from "redux-flute";
+class Story extends Model {
+  static schema = {
+    title: String,
+    body: String,
+    isActive: Boolean,
+    userId: String,
+    _timestamps: true
+  }
+}
+export default flute.model(Story);
+```
+
+#### In your reducers setup
+```js
+// In a file like /reducers.js
+import { combineReducers } from "redux"
+import flute, { reducer as models } from "redux-flute"
+flute.setAPI({ prefix: "/api" })
+import "models"
+export default combineReducers({
+  models,
+  // your other reducers
+});
+```
+
+#### In your store setup
+```js
+// In a file like /store.js
+import { createStore, applyMiddleware, compose } from "redux";
+import reducer from "./reducers";
+import { middleware as fluteMiddleware } from "redux-flute";
+export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* , ...your other middlewares*/)));
+```
