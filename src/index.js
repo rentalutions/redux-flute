@@ -270,7 +270,30 @@ export class Model {
   static create(attrs){
     return new flute.models[this.name](attrs).save()
   }
-  static all(callback){}
+  static all(){
+    // Will retrieve an index from the API as an array
+    return options=>{
+      return new Promise((resolve, error)=>{
+        
+      })
+    }
+  }
+  static find(){
+    // Will retrieve a single record by the model's key
+    return options=>{
+      return new Promise((resolve, error)=>{
+        
+      })
+    }
+  }
+  static where(){
+    // Will retrieve an array of records from the cache, filtered by a simple query
+    return options=>{
+      return new Promise((resolve, error)=>{
+        
+      })
+    }
+  }
   static routes = {}
   static store = { singleton: false }
 }
