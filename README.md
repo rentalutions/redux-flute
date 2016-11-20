@@ -21,12 +21,12 @@ Flute is an object-relational mapping (ORM) implementation that lets you interac
           "state": "TX"
         }
       RESPONSE:
-      	Status: 201 Created
+        Status: 201 Created
         Body: {
-		  "_id": "583132c8edc3b79a853b8d69",
+          "_id": "583132c8edc3b79a853b8d69",
           "createdAt": "2016-11-20T05:21:12.988Z",
           "updatedAt": "2016-11-20T05:21:12.988Z",
-		  "userId": "580432279153ea2679095acd",
+          "userId": "580432279153ea2679095acd",
           "address1": "1100 Congress Ave",
           "city": "Austin",
           "state": "TX"
