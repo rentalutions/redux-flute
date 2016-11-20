@@ -101,34 +101,34 @@ export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* 
  - **Model associations** syntax a-la `userAddress.user` with declarations like:
  
  ```js
- const User = flute.model("User")
- class Address extends Model {
-   static associations = [
-     {belongsTo: User}
-   ]
- }
+  const User = flute.model("User")
+  class Address extends Model {
+    static associations = [
+      {belongsTo: User}
+    ]
+  }
  ```
  - **Validations**, with the ability to exclude local validation like `userAddress.save({validate: false})`, with declarations a-la Mongoose like:
 
  ```js
- class Address extends Model {
-   static schema = {
-     address1: {
-       type: String,
-       required: [true, "A street address is required."]
-     }
-     zip: {
-       type: String,
-       length: {
-         min: 5,
-         message: "ZIP codes must be at least 5 numbers."
-       }
-     }
+  class Address extends Model {
+    static schema = {
+      address1: {
+        type: String,
+        required: [true, "A street address is required."]
+      }
+      zip: {
+        type: String,
+        length: {
+          min: 5,
+          message: "ZIP codes must be at least 5 numbers."
+        }
+      }
      // ... other schema
-   }
- }
+    }
+  }
  ```
  Also planned is the creation of a flute validations API, with the ability to include local and remote validations.
-- **Scopes** and default scope syntax like `orders.completed`
-- **Order** and default ordering `cards.orderBy("price", "ASC")`
-- **Custom schema types** such as automatic conversions to U.S. dollar
+ - **Scopes** and default scope syntax like `orders.completed`
+ - **Order** and default ordering `cards.orderBy("price", "ASC")`
+ - **Custom schema types** such as automatic conversions to U.S. dollar
