@@ -2,7 +2,7 @@
 ![](https://circleci.com/gh/kyleramirez/flute.svg?style=shield&circle-token=f96dcd523b80bba77a924ec8d293eb47c0934bd5)
 
 ### What does it do?
-Flute is an object-relational mapping (ORM) implementation that lets you interact with RESTful APIs. By defining models on the front end, integrating closely with the popular state container, Redux, Flute offers a Ruby-on-Rails-esque, ActiveRecord-ey syntax. Think ActiveRecord for JavaScript. Flute allows you to write syntax like this:
+Flute is a front-end-only Object Data-store Mapping (ODM) implementation that lets you interact with RESTful APIs. By defining models on the front end and integrating closely with the popular state container, Redux, Flute offers a Ruby-on-Rails-esque, ActiveRecord-ey syntax. Think ActiveRecord for JavaScript. Flute is agnostic to back-end architecture. It's built for APIs which respond to GET/POST/POST/DELETE requests for resources identified by predefined keys, so Rails, Express, Sinatra, CouchDB UNAMEIT! Flute allows you to write syntax like this:
 
 ```js
 const userAddress = new Address
@@ -58,6 +58,25 @@ I'm open to suggestion on making this library more widely supported.
 
 # Minimum Setup
 
+### In your app
+```js
+import flute from "redux-flute";
+const Story = flute.model("Story"),
+
+const newStory = new Story;
+newStory.save().then(savedRecord=>(this.setState({ ...savedRecord }));
+// Also works ...
+Story.create({ title: "A working title", body: "Once upon a time..."})  // Makes an API request
+  .then(savedRecord=>(this.setState({ ...savedRecord }));  // Returns a promise ... as do the following methods
+newStory.updateAttribute("title", "A working title") // Makes an API request
+newStory.updateAttributes({ title: "A working title", body: "Once upon a time..."})  // Makes an API request
+
+newStory.destroy() // Makes an API request
+
+Story.all() // Makes an API request to the model's index, returns array of records
+Story.find("583132c8edc3b79a853b8d69") // Makes an API request to this resource, returns single record
+```
+
 ### Defining Models
 ```js
 // In a file like /models/Story.js
@@ -101,34 +120,34 @@ export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* 
  - **Model associations** syntax a-la `userAddress.user` with declarations like:
  
  ```js
- const User = flute.model("User")
- class Address extends Model {
-   static associations = [
-     {belongsTo: User}
-   ]
- }
+  const User = flute.model("User")
+  class Address extends Model {
+    static associations = [
+      {belongsTo: User}
+    ]
+  }
  ```
  - **Validations**, with the ability to exclude local validation like `userAddress.save({validate: false})`, with declarations a-la Mongoose like:
 
  ```js
- class Address extends Model {
-   static schema = {
-     address1: {
-       type: String,
-       required: [true, "A street address is required."]
-     }
-     zip: {
-       type: String,
-       length: {
-         min: 5,
-         message: "ZIP codes must be at least 5 numbers."
-       }
-     }
+  class Address extends Model {
+    static schema = {
+      address1: {
+        type: String,
+        required: [true, "A street address is required."]
+      }
+      zip: {
+        type: String,
+        length: {
+          min: 5,
+          message: "ZIP codes must be at least 5 numbers."
+        }
+      }
      // ... other schema
-   }
- }
+    }
+  }
  ```
  Also planned is the creation of a flute validations API, with the ability to include local and remote validations.
-- **Scopes** and default scope syntax like `orders.completed`
-- **Order** and default ordering `cards.orderBy("price", "ASC")`
-- **Custom schema types** such as automatic conversions to U.S. dollar
+ - **Scopes** and default scope syntax like `orders.completed`
+ - **Order** and default ordering `cards.orderBy("price", "ASC")`
+ - **Custom schema types** such as automatic conversions to U.S. dollar
