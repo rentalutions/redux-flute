@@ -1,5 +1,5 @@
 # redux-flute
-![](https://circleci.com/gh/kyleramirez/flute.svg?style=shield&circle-token=f96dcd523b80bba77a924ec8d293eb47c0934bd5)
+![](https://circleci.com/gh/kyleramirez/redux-flute.svg?style=shield&circle-token=f96dcd523b80bba77a924ec8d293eb47c0934bd5)
 
 ### What does it do?
 Flute is a front-end-only Object Data-store Mapping (ODM) implementation that lets you interact with RESTful APIs. By defining models on the front end and integrating closely with the popular state container, Redux, Flute offers a Ruby-on-Rails-esque, ActiveRecord-ey syntax. Think ActiveRecord for JavaScript. Flute is agnostic to back-end architecture. It's built for APIs which respond to GET/POST/POST/DELETE requests for resources identified by predefined keys, so Rails, Express, Sinatra, CouchDB UNAMEIT! Flute allows you to write syntax like this:
