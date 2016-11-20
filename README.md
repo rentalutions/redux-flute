@@ -99,6 +99,7 @@ export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* 
 # Coming Soon!
 
  - **Model associations** syntax a-la `userAddress.user` with declarations like:
+ 
  ```js
  const User = flute.model("User")
  class Address extends Model {
@@ -108,6 +109,7 @@ export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* 
  }
  ```
  - **Validations**, with the ability to exclude local validation like `userAddress.save({validate: false})`, with declarations a-la Mongoose like:
+
  ```js
  class Address extends Model {
    static schema = {
