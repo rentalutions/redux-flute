@@ -80,7 +80,7 @@ export function routePermitted({ only, except }, method) {
   return true
 }
 
-export function generateRoute(name, method, apiDelimiter, prefix, index=false) {
+export function generateRoute(name, method, apiDelimiter, prefix, index=false, isSingleton) {
   /*
   GET    /stories      #index
   GET    /stories/:id  #show
@@ -89,9 +89,10 @@ export function generateRoute(name, method, apiDelimiter, prefix, index=false) {
   DELETE /stories/:id  #destroy
   */
   const delimiter = delimiterType(apiDelimiter),
-        pluralizedModelWithDelimiter = `/${Sugar.String[delimiter](Sugar.String.pluralize(name))}`,
+        modelInflection = isSingleton ? name : Sugar.String.pluralize(name),
+        modelWithDelimiter = `/${Sugar.String[delimiter](modelInflection)}`,
         id = method === "POST" || index ? "" : "/:id";
-  return `${prefix}${pluralizedModelWithDelimiter}${id}`
+  return `${prefix}${modelWithDelimiter}${id}`
 }
 
 export function interpolateRoute(route, record) {

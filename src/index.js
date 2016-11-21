@@ -49,7 +49,7 @@ export class Flute {
     this.apiCredentials = credentials;
   }
 
-  getRoute({ routes, name }, method, record={}){
+  getRoute({ routes, name, store:{ singleton } }, method, record={}){
     /*
       Get route should now lookup on the model itself for a path
       or if the path is allowed .. and if not, generate the path
@@ -57,7 +57,7 @@ export class Flute {
       :id from the params
     */
     if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model #<${name}>. Check the #<${name}> route configuration.`)
-    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id)
+    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id, singleton)
     return interpolateRoute(route, record)
   }
 
@@ -441,7 +441,29 @@ export const reducer = (state = flute.buildInitialState(), { type, record=null, 
   }
   return newState;
 }
-
+export const transform = (mapStateToProps, reducerName="reducer") => (store, ownProps) => {
+  const reducerModels = {...store[reducerName]};
+  for (let modelName in reducerModels) {
+    const model = flute.models[modelName],
+          isSingular = model.store.singleton,
+          modelShape = reducerModels[modelName];
+    if (isSingular)
+      reducerModels[modelName] = {...modelShape, record: new model({
+        ...modelShape.record,
+        errors:{...modelShape.errors},
+        _request:{...modelShape._request},
+        _version:modelShape._version
+      })}
+    else
+      reducerModels[modelName] = {...modelShape, cache:modelShape.cache.map(item=>(new model({
+        ...item.record,
+        errors:{...item.errors},
+        _request:{...item._request},
+        _version:item._version
+      }))) }
+  }
+  return mapStateToProps({...store, [reducerName]:{...reducerModels}}, ownProps)
+}
 // Documentation notes
 // id is the default key, which works for id and _id ... passing _id as the default key will not work as _id is converted to id
 // Add the ability to define the plural version of the model in the model definition ...
