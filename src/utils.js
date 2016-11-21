@@ -106,7 +106,7 @@ export function delimiterType(delim="") {
   return "dasherize"
 }
 
-export function setReadOnlyProps(params, _timestamps, modelName, _obj){
+export function setReadOnlyProps(params, _timestamps, modelName, _obj, flute){
   const { id, _id } = params;
   // Establish the ID, also _id
   if (id || _id) _obj.record.id = id || _id;
@@ -187,7 +187,7 @@ export function setReadOnlyProps(params, _timestamps, modelName, _obj){
   }
 }
 
-export function setWriteableProps(params, schema, _obj){
+export function setWriteableProps(params, schema, _obj, flute){
   for (let prop in schema){
     const initialValue = params.hasOwnProperty(prop) ? params[prop] : null;
     _obj.record[prop] = initialValue
@@ -219,15 +219,15 @@ export function setWriteableProps(params, schema, _obj){
 }
 
 export function mergeRecordsIntoCache(cache, records, keyStr, model) {
-        // Get the records ready for the cache
-  const recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)})),
+  // Get the records ready for the cache
+  const recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)}));
         // Remove anything in the cache that matches keys in the records
-        filteredCache = cache.filter(cacheItem=>{
+  const filteredCache = cache.filter(cacheItem=>{
           let match = false;
           recordsForCache.map(recordsItem=>{
-            match = recordsItem.record[keyStr] == cacheItem.record[keyStr]
+            if (recordsItem.record[keyStr] == cacheItem.record[keyStr]) match = true
           })
-          return !match;
+          return !match
         })
   // Finally, merge the new records and the filtered records
   return [].concat(filteredCache, recordsForCache);

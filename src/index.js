@@ -237,8 +237,8 @@ export class Model {
 
     // Extract the timestamps and key declaration from the schema
     const { _timestamps, _key, ...schema } = model.schema;
-    setReadOnlyProps(params, _timestamps, modelName, this);
-    setWriteableProps(params, schema, this);
+    setReadOnlyProps(params, _timestamps, modelName, this, flute);
+    setWriteableProps(params, schema, this, flute);
   }
   get updateAttributes() {
     return (attributes={})=>{
@@ -470,3 +470,5 @@ export const transform = (mapStateToProps, reducerName="reducer") => (store, own
 //Test:should create properties according to schema, giving a null value if not defined
 // Eventually, provide a way to add a default value to the model definition ... so this test can read:
 //Test:should create properties according to schema, giving a null OR DEFAULT value if not defined
+
+// The ID should not be part of the JSON object ... nor should really association IDs
