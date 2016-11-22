@@ -1,3 +1,6 @@
+docs
+.tm_properties
+
 # Logs
 logs
 *.log
