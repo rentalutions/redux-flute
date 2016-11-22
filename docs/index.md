@@ -2,8 +2,9 @@
 layout: default
 ---
 <div class="col-12" style="margin-top:2em; margin-bottom:2em;">
-Redux Flute - Render an index of records from the cache
-{% highlight js %}
+Redux Flute - Render an index of records from the cache using <code class="highlighter-rouge">transform</code>
+<div style="margin-top:1em;">
+{% highlight coffeescript %}
 import React, { Component } from "react"
 import { connect } from "react-redux"
 import flute, { transform } from "redux-flute"
@@ -36,4 +37,5 @@ export default connect(transform(mapStateToProps, "models"))(class Index extends
     );
   }
 }){% endhighlight %}
+</div>
 </div>
