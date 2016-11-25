@@ -359,7 +359,7 @@ export const reducer = (state = flute.buildInitialState(), { type, record=null, 
       if (isSuccessful && record) {
         // If this is singleton, update the main record
         if (singleton){
-          newState[modelName].record = createThisRecord(model, item)
+          newState[modelName].record = createThisRecord(model, record)
           newState[modelName].version = 0
           // If it's a traditional cache, add the results to the index
         } else {
@@ -374,7 +374,7 @@ export const reducer = (state = flute.buildInitialState(), { type, record=null, 
       if (isSuccessful && record) {
         // If the model is a singleton, easy update the record
         if (singleton) {
-          newState[modelName].record = createThisRecord(model, item)
+          newState[modelName].record = createThisRecord(model, record)
           newState[modelName].version = 0
         } else {
           newState[modelName].cache = mergeRecordsIntoCache(newState[modelName].cache, [].concat(record), keyStr, model)
