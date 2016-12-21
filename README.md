@@ -115,6 +115,16 @@ import { middleware as fluteMiddleware } from "redux-flute";
 export default createStore(reducer, compose( applyMiddleware(fluteMiddleware /* , ...your other middlewares*/)));
 ```
 
+### Minification
+If you are running your build through something like Uglify, or part of a Webpack build, you'll need to exclude the class names of your models. Uglify supports excluding certain keywords from the minification/mangle process. Below is an example configuration for Webpack, in the plugins section of your webpack config.
+```js
+new webpack.optimize.UglifyJsPlugin({
+  mangle: {
+    except: ["BankAccount", "CreditCard","User"]
+  }
+})
+```
+
 # Coming Soon!
 
  - **Model associations** syntax a-la `userAddress.user` with declarations like:
