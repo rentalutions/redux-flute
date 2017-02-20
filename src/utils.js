@@ -1,4 +1,4 @@
-import "./sugar"
+import Sugar from "./sugar"
 import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
 export function isEmptyObject(obj){

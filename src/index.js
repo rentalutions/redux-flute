@@ -1,4 +1,4 @@
-import "./sugar"
+import Sugar from "./sugar"
 import "whatwg-fetch"
 import {
   isEmptyObject, generateID, pruneDeep,
