@@ -82,7 +82,16 @@ export class Flute {
           .then(checkResponseStatus)
           .then(res=>(res.json()))
           .then(data=>{
-            const newModelData = {...recordForAction, ...data},
+                  // This will overwrite all Rails-style nested attributes (addresses_attributes)
+                  // to blank objects each time they are successfully sent back to an API.
+                  // TODO: Should move into a setting and test.
+            const recordForActionWithRailsStyleNestedAttributesBlanked = Object.keys(recordForAction)
+                                                                               .filter(attribute=>(attribute.match(/_attributes$/)))
+                                                                               .reduce((attrs, attr)=>{
+                                                                                 attrs[attr] = {}
+                                                                                 return attrs;
+                                                                               }, {...recordForAction}),
+                  newModelData = {...recordForActionWithRailsStyleNestedAttributesBlanked, ...data},
                   newModel = new model(newModelData);
             this.dispatch({ type: `@FLUTE_${method}_SUCCESS_${modelTypeForAction}`, record:newModelData })
             resolve(newModel)
