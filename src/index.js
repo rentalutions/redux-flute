@@ -1,5 +1,6 @@
 import Sugar from "./sugar"
 import "whatwg-fetch"
+import diff from "object-diff"
 import {
   isEmptyObject, generateID, pruneDeep,
   pruneArray, regexIndexOf, checkResponseStatus,
@@ -23,6 +24,9 @@ export class Flute {
     /* The default credentials send the cookies along with the request.
        The request can be overriden, but consult the fetch documentation. */
     this.apiCredentials = "same-origin"
+    /* DiffMode will only submit the changed/new attributes of a model
+       rather than the entire model. It is on by default */
+    this.diffMode = true
   }
 
   model(model){
@@ -42,11 +46,12 @@ export class Flute {
     this.models[model.name] = model;
   }
 
-  setAPI({ prefix=this.apiPrefix, delimiter=this.apiDelimiter, headers=this.apiHeaders, credentials=this.apiCredentials }){
+  setAPI({ prefix=this.apiPrefix, delimiter=this.apiDelimiter, headers=this.apiHeaders, credentials=this.apiCredentials, diffMode=this.diffMode }){
     this.apiPrefix = prefix;
     this.apiDelimiter = delimiter;
     Object.assign(this.apiHeaders, headers);
     this.apiCredentials = credentials;
+    this.diffMode = diffMode;
   }
 
   getRoute({ routes, name, store:{ singleton } }, method, record={}){
@@ -67,7 +72,7 @@ export class Flute {
         const modelType = modelInstance.constructor.name,
               modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
               model = this.models[modelType],
-              record = pruneDeep(modelInstance.record),
+              record = pruneDeep(this.diffMode? diff(modelInstance.pristineRecord, modelInstance.record) : modelInstance.record),
               recordForAction = isEmptyObject(record) ? null : record,
               { _version:version } = modelInstance,
               method = record.id ? "PUT" : "POST",
@@ -248,6 +253,14 @@ export class Model {
     const { _timestamps, _key, ...schema } = model.schema;
     setReadOnlyProps(params, _timestamps, modelName, this, flute);
     setWriteableProps(params, schema, this, flute);
+
+    // Define a pristine, read-only version of the model for diffing
+    const pristineRecord = { ...this.record }
+    Object.defineProperty(this, "pristineRecord", {
+      enumerable: false,
+      get: ()=>({ ...pristineRecord }),
+      set: ()=>{throw new TypeError(`#<${modelName}> property \`pristineRecord\` is read-only.`)}
+    })
   }
   get updateAttributes() {
     return (attributes={})=>{
