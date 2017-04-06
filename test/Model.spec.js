@@ -16,13 +16,14 @@ describe("Model", ()=>{
     const PersonModel = flute.model("Person")
 
     // Shitty stub fetch real quick
-    global.fetch = ()=>Promise.resolve({
+    const fetch = ()=>Promise.resolve({
       status: 404,
       json: ()=>Promise.resolve({body: { summary: "Not found" }})
     })
 
-    const fetchSpy = chai.spy(global.fetch),
+    const fetchSpy = chai.spy(fetch),
           dispatch = chai.spy();
+    global.fetch = fetchSpy;
 
     // Stub out a redux store for flute
     middleware({ dispatch })(function(action){ return action; })({type:"cool"})
@@ -37,19 +38,26 @@ describe("Model", ()=>{
     it("should only save the changed attributes (diff)", ()=>{
       const person = new Person({ name: "Kyle", age: 28 })
       person.name = "Jim"
-
+      fetchSpy.reset();
       person.save().catch(e=>{});
-      expect(dispatch).to.have.been.called.with({ type: "@FLUTE_POST_PERSON", record: { name: "Jim" } });
+      const [lastCall] = fetchSpy.__spy.calls,
+            [,{ body:jsonBody }] = lastCall,
+            body = JSON.parse(jsonBody);
+
+      expect(body).to.eql({name: "Jim" })
     })
 
     it("should save the entire record if diff mode is disabled", ()=>{
-      dispatch.reset()
       const person = new Person({ name: "Kyle", age: 28 })
       person.name = "Jim"
-
+      fetchSpy.reset();
       flute.setAPI({ diffMode: false })
       person.save().catch(e=>{});
-      expect(dispatch).to.have.been.called.with({ type: "@FLUTE_POST_PERSON", record: { name: "Jim", age: 28 } });
+      const [lastCall] = fetchSpy.__spy.calls,
+            [,{ body:jsonBody }] = lastCall,
+            body = JSON.parse(jsonBody);
+
+      expect(body).to.eql({ name: "Jim", age: 28 })
     })
 
   });

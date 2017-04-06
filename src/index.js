@@ -72,12 +72,12 @@ export class Flute {
         const modelType = modelInstance.constructor.name,
               modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
               model = this.models[modelType],
-              record = pruneDeep(this.diffMode? diff(modelInstance.pristineRecord, modelInstance.record) : modelInstance.record),
+              record = pruneDeep(modelInstance.record),
               recordForAction = isEmptyObject(record) ? null : record,
               { _version:version } = modelInstance,
               method = record.id ? "PUT" : "POST",
               route = this.getRoute(model, method, record),
-              body = JSON.stringify(record),
+              body = JSON.stringify(this.diffMode? diff(pruneDeep(modelInstance.pristineRecord), record) : record),
               headers = this.apiHeaders,
               credentials = this.apiCredentials;
 
