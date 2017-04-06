@@ -77,7 +77,10 @@ export class Flute {
               { _version:version } = modelInstance,
               method = record.id ? "PUT" : "POST",
               route = this.getRoute(model, method, record),
-              body = JSON.stringify(this.diffMode? diff(pruneDeep(modelInstance.pristineRecord), record) : record),
+              // TODO: Create a better way to see if the record is from an API, better than checking for if an ID exists
+              // as in check for a createdAt instead ....
+              useDiffed = this.diffMode && method == "PUT",
+              body = JSON.stringify(useDiffed? diff(pruneDeep(modelInstance.pristineRecord), record) : record),
               headers = this.apiHeaders,
               credentials = this.apiCredentials;
 
