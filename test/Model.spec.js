@@ -60,5 +60,43 @@ describe("Model", ()=>{
       expect(body).to.eql({ name: "Jim", age: 28 })
     })
 
+    it("should be able to interpolate a route when diffMode is on (#BUG)", ()=>{
+      class Unit extends Model {
+        static routes = {
+          only: ["GET", "POST", "PUT"],
+          POST: "/api/v2/landlords/buildings/:building_id/units",
+          PUT: "/api/v2/landlords/buildings/:building_id/units/:id"
+        }
+        static schema = {
+          user_id: Number,
+          building_id: Number,
+          unit_type: String,
+          _timestamps: true
+        }
+      }
+      flute.model(Unit);
+      const UnitModel = flute.model("Unit")
+
+      const unit = new Unit({
+        id:46,
+        user_id: 10,
+        building_id: 45,
+        unit_type: "sfh",
+        created_at: "2017-04-06T14:49:46-05:00",
+        updated_at:"2017-04-06T14:49:46-05:00"
+      })
+      unit.unit_type = "town"
+      fetchSpy.reset();
+      flute.setAPI({ diffMode: true })
+      unit.save().catch(e=>{});
+
+      const [lastCall] = fetchSpy.__spy.calls,
+            [requestPath,{ body:jsonBody }] = lastCall,
+            body = JSON.parse(jsonBody);
+
+      expect(body).to.eql({ unit_type: "town" })
+      expect(requestPath).to.eql("/api/v2/landlords/buildings/45/units/46")
+    })
+
   });
 });
