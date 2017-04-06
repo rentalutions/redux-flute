@@ -1,3 +1,6 @@
+### 0.3.2
+Fixed a bug that would save no attributes on a new model because of diffing
+
 ### 0.3.1
 Fixed a bug that diffed records before they had a chance to interpolate routes
 
