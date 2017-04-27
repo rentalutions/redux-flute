@@ -1,3 +1,7 @@
+## 0.4.0
+Added the ability to pass in URL parameters to `.all` and `.find` model
+methods. Can be either a string or an object which is turned into a string.
+
 ### 0.3.2
 Fixed a bug that would save no attributes on a new model because of diffing
 
