@@ -6,7 +6,7 @@ import {
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
   setWriteableProps, mergeRecordsIntoCache, createThisRecord,
-  tmpRecordProps
+  tmpRecordProps, objToQueryString
 } from "../src/utils"
 
 import { singleRecordProps, versioningProps, recordProps } from "../src/constants"
@@ -440,6 +440,14 @@ describe("Utils", ()=>{
     });
     it("should create a unique ID every time", ()=>{
       expect(tmpRecordProps().id).to.not.equal(tmpRecordProps().id)
+    });
+  });
+
+  describe("#objToQueryString", ()=>{
+    it("should turn a regular object into a query string", ()=>{
+      const obj = { cool:"story", bro:"tell", it:"again", search:"Whoa! This was so cooL!<div></div>" },
+            finalStr = "?cool=story&bro=tell&it=again&search=Whoa!%20This%20was%20so%20cooL!%3Cdiv%3E%3C%2Fdiv%3E";
+      expect(objToQueryString(obj)).to.equal(finalStr);
     });
   });
 });

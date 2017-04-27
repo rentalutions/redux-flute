@@ -75,6 +75,14 @@ newStory.destroy() // Makes an API request
 
 Story.all() // Makes an API request to the model's index, returns array of records
 Story.find("583132c8edc3b79a853b8d69") // Makes an API request to this resource, returns single record
+
+// Passing extra URL query parameters
+Story.all({month:"05", year:2017}) // Makes an API request to /stories?month=05&year=2017
+Story.all("?month=05&year=2017") // Also works
+Story.find("first-post", { include_comments: true }) // Makes an API request to /stories/first-post?include_comments=true
+Story.find("first-post", "?include_comments=true") // Also works
+// Use cases for extra query params
+Search.all({q: "Am I being detained?"}) // Generates /search?q=Am%20I%20being%20detained%3F
 ```
 
 ### Defining Models

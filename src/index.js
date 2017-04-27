@@ -6,7 +6,8 @@ import {
   pruneArray, regexIndexOf, checkResponseStatus,
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
-  setWriteableProps, mergeRecordsIntoCache, createThisRecord
+  setWriteableProps, mergeRecordsIntoCache, createThisRecord,
+  objToQueryString
 } from "./utils"
 import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
@@ -54,7 +55,7 @@ export class Flute {
     this.diffMode = diffMode;
   }
 
-  getRoute({ routes, name, store:{ singleton } }, method, record={}){
+  getRoute({ routes, name, store:{ singleton } }, method, record={}, query){
     /*
       Get route should now lookup on the model itself for a path
       or if the path is allowed .. and if not, generate the path
@@ -62,8 +63,12 @@ export class Flute {
       :id from the params
     */
     if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model #<${name}>. Check the #<${name}> route configuration.`)
-    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id, singleton)
-    return interpolateRoute(route, record)
+    if (query instanceof Function || query instanceof Array) throw new TypeError(`Route query can only be a String or Object.`)
+
+    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id, singleton),
+          routeQuery = typeof query === "string"? query : query instanceof Object? objToQueryString(query) : "";
+
+    return interpolateRoute(`${route}${routeQuery}`, record)
   }
 
   saveModel(modelInstance){
@@ -141,13 +146,13 @@ export class Flute {
       this.dispatch({ type: `@FLUTE_SET_${modelTypeForAction}`, record:recordForAction })
   }
 
-  getModel(model, id=false){
+  getModel(model, id=null, query){
     return new Promise((resolve, error)=>{
       try {
         const modelType = model.name,
               modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
               method = "GET",
-              route = this.getRoute(model, method, { id }),
+              route = this.getRoute(model, method, { id }, query),
               headers = this.apiHeaders,
               credentials = this.apiCredentials;
 
@@ -319,9 +324,9 @@ export class Model {
     return new flute.models[this.name](attrs).save()
   }
   // Will retrieve an index from the API as an array
-  static all(options){ return flute.getModel(this) }
+  static all(query=""){ return flute.getModel(this, undefined, query) }
   // Will retrieve a single record by the model's key
-  static find(keyStr){ return flute.getModel(this,keyStr) }
+  static find(keyStr, query=""){ return flute.getModel(this, keyStr, query) }
   static routes = {}
   static store = { singleton: false }
 }

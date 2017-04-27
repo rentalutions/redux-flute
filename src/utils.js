@@ -96,7 +96,7 @@ export function generateRoute(name, method, apiDelimiter, prefix, index=false, i
 }
 
 export function interpolateRoute(route, record) {
-  return route.replace(/:([^\/]*)/g, (match, capture)=>(
+  return route.replace(/:([^\/\?]*)/g, (match, capture)=>(
     record.hasOwnProperty(capture) && record[capture] ? record[capture] : match
   ))
 }
@@ -200,6 +200,8 @@ export function setWriteableProps(params, schema, _obj, flute){
       return _obj.record[prop] = newValue
     }
 
+    if (schema[prop].name === "Array")
+      get = ()=> (_obj.record[prop] || [])
     if (schema[prop].name === "Date")
       get = ()=> (_obj.record[prop] === null ? null : new Date(_obj.record[prop]))
     if (schema[prop].name === "Number")
@@ -246,3 +248,12 @@ export function tmpRecordProps(){
     creating: false
   });
 };
+
+export function objToQueryString(obj) {
+  return Object.keys(obj).reduce( (final, current) => {
+    const prefix = final.length? "&" : "?",
+          key = encodeURIComponent(current),
+          value = encodeURIComponent(obj[current]);
+    return `${final}${prefix}${key}=${value}`;
+  }, "" )
+}

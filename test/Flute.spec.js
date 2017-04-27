@@ -69,6 +69,14 @@ describe("Flute", ()=>{
     it("should use a route specified in the model definition", ()=>{
       expect(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" })).to.equal("/correct-route/123")
     });
+    it("should add a query string to the route if a query string is specified", ()=>{
+      expect("/correct-route/123?word=up").to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" },"?word=up"))
+    });
+    it("should add a query string to the route if an object was given as the query argument", ()=>{
+      const obj = { cool:"story", bro:"tell", it:"again", search:"Whoa! This was so cooL!<div></div>" },
+            queryString = "?cool=story&bro=tell&it=again&search=Whoa!%20This%20was%20so%20cooL!%3Cdiv%3E%3C%2Fdiv%3E"
+      expect(`/correct-route/123${queryString}`).to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" }, obj))
+    });
   });
 
   
