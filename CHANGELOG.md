@@ -1,3 +1,6 @@
+### 0.4.1
+Changed schema type Object to return empty object by default instead of null.
+
 ## 0.4.0
 Added the ability to pass in URL parameters to `.all` and `.find` model
 methods. Can be either a string or an object which is turned into a string.

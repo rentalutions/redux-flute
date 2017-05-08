@@ -200,6 +200,8 @@ export function setWriteableProps(params, schema, _obj, flute){
       return _obj.record[prop] = newValue
     }
 
+    if (schema[prop].name === "Object")
+      get = ()=> (_obj.record[prop] || {})
     if (schema[prop].name === "Array")
       get = ()=> (_obj.record[prop] || [])
     if (schema[prop].name === "Date")
