@@ -1,3 +1,6 @@
+### 0.4.2
+Fixed a bug that would prevent returning new records called with `.create()`, no attributes.
+
 ### 0.4.1
 Changed schema type Object to return empty object by default instead of null.
 

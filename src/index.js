@@ -98,7 +98,7 @@ export class Flute {
                   // This will overwrite all Rails-style nested attributes (addresses_attributes)
                   // to blank objects each time they are successfully sent back to an API.
                   // TODO: Should move into a setting and test.
-            const recordForActionWithRailsStyleNestedAttributesBlanked = Object.keys(recordForAction)
+            const recordForActionWithRailsStyleNestedAttributesBlanked = Object.keys(recordForAction || {})
                                                                                .filter(attribute=>(attribute.match(/_attributes$/)))
                                                                                .reduce((attrs, attr)=>{
                                                                                  attrs[attr] = {}
