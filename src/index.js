@@ -170,6 +170,8 @@ export class Flute {
           .catch(e=>{
             const action = { type: `@FLUTE_REQUEST_INFO_${modelTypeForAction}` }
             if (id) action["record"] = { id }
+            const { status, response:{ statusText:body="" }={} } = e;
+            if (status) action._request = { version:0, status, body }
             this.dispatch(action)
             error(e)
           })

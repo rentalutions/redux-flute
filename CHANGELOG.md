@@ -1,3 +1,6 @@
+### 0.4.3
+Added more info on `@FLUTE_REQUEST_INFO_*` events like 404 status and body.
+
 ### 0.4.2
 Fixed a bug that would prevent returning new records called with `.create()`, no attributes.
 
