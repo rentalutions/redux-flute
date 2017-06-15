@@ -66,7 +66,8 @@ export class Flute {
     if (query instanceof Function || query instanceof Array) throw new TypeError(`Route query can only be a String or Object.`)
 
     const isIndex = method === "INDEX",
-          route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, isIndex, singleton),
+          indexRoute = isIndex ? (routes[method] || routes["GET"]) : null,
+          route = indexRoute || routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, isIndex, singleton),
           routeQuery = typeof query === "string"? query : query instanceof Object? objToQueryString(query) : "";
 
     return interpolateRoute(`${route}${routeQuery}`, record)

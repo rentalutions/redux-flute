@@ -150,5 +150,28 @@ describe("Model", ()=>{
 
       delete Person.routes.INDEX
     })
+
+    it("should fallback to the normal GET route if an INDEX route was not provided for singletons (BUG)", ()=>{
+      class Landlord extends Model {
+        static routes = {
+          only: ["GET", "PUT"],
+          GET: "/api/v2/landlords/me",
+          PUT: "/api/v2/landlords/me"
+        }
+
+        static schema = {
+          name: String,
+          level: String
+        }
+      }
+      flute.model(Landlord);
+      const Me = flute.model("Landlord");
+      fetchSpy.reset();
+      Me.all().catch(function(){})
+      const [lastCall] = fetchSpy.__spy.calls,
+            [ route ] = lastCall;
+
+      expect("/api/v2/landlords/me").to.eql(route)
+    })
   });
 });

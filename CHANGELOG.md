@@ -1,3 +1,7 @@
+### 0.4.5
+Fixed a bug that would not generate the correct route for an index if INDEX
+was not specified on singleton-type models.
+
 ### 0.4.4
 Fixed a bug that would resolve destroyed models instantly. Added the ability
 to define an `INDEX` route override and permissable as part of Model-level
