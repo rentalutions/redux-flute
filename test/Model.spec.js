@@ -118,4 +118,37 @@ describe("Model", ()=>{
       expect(body).to.eql({ user_id: 10, building_id: 45, unit_type: "sfh" })
     })
   })
+
+  describe("#all", ()=>{
+    it("should allow INDEX as a route type", ()=>{
+      fetchSpy.reset();
+      Person.all().catch(function(){})
+      const [lastCall] = fetchSpy.__spy.calls,
+            [,{ method }] = lastCall;
+      expect("GET").to.eql(method)
+    });
+
+    it("should allow custom index routes", ()=>{
+      Person.routes.INDEX = "/my-custom-index-route"
+      fetchSpy.reset();
+      Person.all().catch(function(){})
+      const [lastCall] = fetchSpy.__spy.calls,
+            [ route ] = lastCall;
+
+      expect(Person.routes.INDEX).to.eql(route)
+
+      delete Person.routes.INDEX
+    });
+
+    it("should allow custom index routes without affecting show route", ()=>{
+      Person.routes.INDEX = "/my-custom-index-route"
+      fetchSpy.reset();
+      Person.find("dude-kyle").catch(function(){})
+      const [lastCall] = fetchSpy.__spy.calls,
+            [ route ] = lastCall;
+      expect("/people/dude-kyle").to.eql(route)
+
+      delete Person.routes.INDEX
+    })
+  });
 });

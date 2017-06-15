@@ -179,6 +179,14 @@ describe("Utils", ()=>{
       expect(routePermitted({ except: ["POST", "PUT"] }, "GET")).to.equal(true)
       expect(routePermitted({ except: ["POST", "PUT"] }, "POST")).to.equal(false)
     });
+
+    it("should allow INDEX as a GET route type", ()=>{
+      expect(true).to.equal(routePermitted({}, "INDEX"))
+      expect(true).to.equal(routePermitted({ only: "GET" }, "INDEX"))
+      expect(false).to.equal(routePermitted({ except: "GET" }, "INDEX"))
+      expect(false).to.equal(routePermitted({ except: "INDEX" }, "INDEX"))
+    });
+
   });
 
   describe("#generateRoute", ()=>{
@@ -186,6 +194,11 @@ describe("Utils", ()=>{
       expect(generateRoute("BankAccount", "GET", "underscore", "/api", true)).to.equal("/api/bank_accounts")
       expect(generateRoute("BankAccount", "GET", "dasherize", "/api", true)).to.equal("/api/bank-accounts")
     });
+
+    it("should allow an alternative syntax for an #index", ()=>{
+      expect("/api/bank_accounts").to.equal(generateRoute("BankAccount", "INDEX", "underscore", "/api", true))
+    });
+
     it("should generate the correct route for a #show", ()=>{
       expect(generateRoute("BankAccount", "GET", "underscore", "/api")).to.equal("/api/bank_accounts/:id")
       expect(generateRoute("BankAccount", "GET", "dasherize", "/api")).to.equal("/api/bank-accounts/:id")

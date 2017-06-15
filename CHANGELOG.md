@@ -1,8 +1,14 @@
+### 0.4.4
+Fixed a bug that would resolve destroyed models instantly. Added the ability
+to define an `INDEX` route override and permissable as part of Model-level
+routes configuration.
+
 ### 0.4.3
 Added more info on `@FLUTE_REQUEST_INFO_*` events like 404 status and body.
 
 ### 0.4.2
-Fixed a bug that would prevent returning new records called with `.create()`, no attributes.
+Fixed a bug that would prevent returning new records called with `.create()`,
+no attributes.
 
 ### 0.4.1
 Changed schema type Object to return empty object by default instead of null.

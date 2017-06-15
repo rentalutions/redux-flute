@@ -72,10 +72,13 @@ export function checkResponseStatus(response){
   throw error
 }
 
-export function routePermitted({ only, except }, method) {
+export function routePermitted({ only, except }, methodOrAction) {
+
+  const method = methodOrAction === "INDEX" ? "GET" : methodOrAction;
+
   if ((only instanceof Array && only.indexOf(method) === -1) || (typeof only === "string" && only !== method))
     return false
-  if ((except instanceof Array && except.indexOf(method) !== -1) || (typeof except === "string" && except === method))
+  if ((except instanceof Array && except.indexOf(method) !== -1) || (typeof except === "string" && (except === method || except === methodOrAction)))
     return false
   return true
 }

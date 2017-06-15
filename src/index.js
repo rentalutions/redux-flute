@@ -65,7 +65,8 @@ export class Flute {
     if (!routePermitted(routes, method)) throw new TypeError(`Method ${method} is not permitted for model #<${name}>. Check the #<${name}> route configuration.`)
     if (query instanceof Function || query instanceof Array) throw new TypeError(`Route query can only be a String or Object.`)
 
-    const route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, !!!record.id, singleton),
+    const isIndex = method === "INDEX",
+          route = routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, isIndex, singleton),
           routeQuery = typeof query === "string"? query : query instanceof Object? objToQueryString(query) : "";
 
     return interpolateRoute(`${route}${routeQuery}`, record)
@@ -152,7 +153,8 @@ export class Flute {
         const modelType = model.name,
               modelTypeForAction = Sugar.String.underscore(modelType).toUpperCase(),
               method = "GET",
-              route = this.getRoute(model, method, { id }, query),
+              internalMethod = id? "GET" : "INDEX",
+              route = this.getRoute(model, internalMethod, { id }, query),
               headers = this.apiHeaders,
               credentials = this.apiCredentials;
 
@@ -317,7 +319,7 @@ export class Model {
       return new Promise((resolve,error)=>{
         const modelType =  this.constructor.name;
         flute.destroyModel(modelType, {id:this.id})
-          .then(resolve())
+          .then(resolve)
           .catch(e=>error(e))
       })
     }
