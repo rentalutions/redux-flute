@@ -1,3 +1,7 @@
+### 0.4.6
+Fixed a bug that would always add updated members to the end of a collection,
+instead of updating them in the correct order.
+
 ### 0.4.5
 Fixed a bug that would not generate the correct route for an index if INDEX
 was not specified on singleton-type models.

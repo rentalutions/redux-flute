@@ -227,17 +227,22 @@ export function setWriteableProps(params, schema, _obj, flute){
 
 export function mergeRecordsIntoCache(cache, records, keyStr, model) {
   // Get the records ready for the cache
-  const recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)}));
-        // Remove anything in the cache that matches keys in the records
-  const filteredCache = cache.filter(cacheItem=>{
-          let match = false;
-          recordsForCache.map(recordsItem=>{
-            if (recordsItem.record[keyStr] == cacheItem.record[keyStr]) match = true
-          })
-          return !match
-        })
-  // Finally, merge the new records and the filtered records
-  return [].concat(filteredCache, recordsForCache);
+  let recordsForCache = records.map(record=>({...singleRecordProps, record: createThisRecord(model, record)}));
+
+  // Update any existing members of the cache
+  return [].concat(cache.map( cacheItem => {
+    let updatedCacheItem = cacheItem;
+    recordsForCache = recordsForCache.filter( recordsItem => {
+      // When a match is found, remove it from the recordsForCache
+      if (recordsItem.record[keyStr] == cacheItem.record[keyStr]) {
+        updatedCacheItem = recordsItem;
+        return false
+      }
+      return true;
+    });
+    return updatedCacheItem;
+  // Then concat the remaining records for cache at the end
+  }), recordsForCache)
 }
 
 export function createThisRecord(model, rawRecord) {
