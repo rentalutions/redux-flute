@@ -1,3 +1,6 @@
+### 0.4.7
+Added more methods for Sugar.js
+
 ### 0.4.6
 Fixed a bug that would always add updated members to the end of a collection,
 instead of updating them in the correct order.

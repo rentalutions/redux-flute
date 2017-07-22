@@ -1,7 +1,21 @@
 /*
- *  Sugar Custom 2017.02.20
+ *  Sugar Custom 2017.07.22
  *
- *  has pluralize, underscore, dasherize, camelize
+ * Includes:
+ *  - pluralize
+ *  - underscore
+ *  - dasherize
+ *  - camelize
+ *  - humanize
+ *  - singularize
+ *  - titleize
+ *  - addHuman
+ *  - addPlural
+ *
+ *  Freely distributable and licensed under the MIT-style license.
+ *  Copyright (c)  Andrew Plummer
+ *  https://sugarjs.com/
+ *
  * ---------------------------- */
 (function() {
   'use strict';
@@ -1035,6 +1049,14 @@
       defineInstanceAndStatic     = wrapNamespace('defineInstanceAndStatic'),
       defineInstanceWithArguments = wrapNamespace('defineInstanceWithArguments');
 
+  function defineAccessor(namespace, name, fn) {
+    setProperty(namespace, name, fn);
+  }
+
+  function isDefined(o) {
+    return o !== undefined;
+  }
+
   function isObjectType(obj, type) {
     return !!obj && (type || typeof obj) === 'object';
   }
@@ -1126,6 +1148,17 @@
     }
   }
 
+  function indexOf(arr, el) {
+    for (var i = 0, len = arr.length; i < len; i++) {
+      if (i in arr && arr[i] === el) return i;
+    }
+    return -1;
+  }
+
+  function trim(str) {
+    return str.trim();
+  }
+
   function simpleCapitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
@@ -1134,6 +1167,34 @@
 
   function getAcronym(str) {
     return Inflections.acronyms && Inflections.acronyms.find(str);
+  }
+
+  function getHumanWord(str) {
+    return Inflections.human && Inflections.human.find(str);
+  }
+
+  function runHumanRules(str) {
+    return Inflections.human && Inflections.human.runRules(str) || str;
+  }
+
+  function getRegExpFlags(reg, add) {
+    var flags = '';
+    add = add || '';
+    function checkFlag(prop, flag) {
+      if (prop || add.indexOf(flag) > -1) {
+        flags += flag;
+      }
+    }
+    checkFlag(reg.global, 'g');
+    checkFlag(reg.ignoreCase, 'i');
+    checkFlag(reg.multiline, 'm');
+    checkFlag(reg.sticky, 'y');
+    return flags;
+  }
+
+  function escapeRegExp(str) {
+    if (!isString(str)) str = String(str);
+    return str.replace(/([\\\/\'*+?|()\[\]{}.^$-])/g,'\\$1');
   }
 
   buildClassChecks();
@@ -1150,6 +1211,66 @@
 
   // Regex matching camelCase.
   var CAMELIZE_REG = /(^|_)([^_]+)/g;
+
+  // Words that should not be capitalized in titles
+  var DOWNCASED_WORDS = [
+    'and', 'or', 'nor', 'a', 'an', 'the', 'so', 'but', 'to', 'of', 'at',
+    'by', 'from', 'into', 'on', 'onto', 'off', 'out', 'in', 'over',
+    'with', 'for'
+  ];
+
+  function stringEach(str, search, fn) {
+    var chunks, chunk, reg, result = [];
+    if (isFunction(search)) {
+      fn = search;
+      reg = /[\s\S]/g;
+    } else if (!search) {
+      reg = /[\s\S]/g;
+    } else if (isString(search)) {
+      reg = RegExp(escapeRegExp(search), 'gi');
+    } else if (isRegExp(search)) {
+      reg = RegExp(search.source, getRegExpFlags(search, 'g'));
+    }
+    // Getting the entire array of chunks up front as we need to
+    // pass this into the callback function as an argument.
+    chunks = runGlobalMatch(str, reg);
+
+    if (chunks) {
+      for(var i = 0, len = chunks.length, r; i < len; i++) {
+        chunk = chunks[i];
+        result[i] = chunk;
+        if (fn) {
+          r = fn.call(str, chunk, i, chunks);
+          if (r === false) {
+            break;
+          } else if (isDefined(r)) {
+            result[i] = r;
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  // "match" in < IE9 has enumable properties that will confuse for..in
+  // loops, so ensure that the match is a normal array by manually running
+  // "exec". Note that this method is also slightly more performant.
+  function runGlobalMatch(str, reg) {
+    var result = [], match, lastLastIndex;
+    while ((match = reg.exec(str)) != null) {
+      if (reg.lastIndex === lastLastIndex) {
+        reg.lastIndex += 1;
+      } else {
+        result.push(match[0]);
+      }
+      lastLastIndex = reg.lastIndex;
+    }
+    return result;
+  }
+
+  function eachWord(str, fn) {
+    return stringEach(trim(str), /\S+/g, fn);
+  }
 
   function stringUnderscore(str) {
     var areg = Inflections.acronyms && Inflections.acronyms.reg;
@@ -1175,11 +1296,35 @@
     });
   }
 
+  function stringSpacify(str) {
+    return stringUnderscore(str).replace(/_/g, ' ');
+  }
+
   function stringCapitalize(str, downcase, all) {
     if (downcase) {
       str = str.toLowerCase();
     }
     return all ? str.replace(CAPITALIZE_REG, simpleCapitalize) : simpleCapitalize(str);
+  }
+
+  function stringTitleize(str) {
+    var fullStopPunctuation = /[.:;!]$/, lastHadPunctuation;
+    str = runHumanRules(str);
+    str = stringSpacify(str);
+    return eachWord(str, function(word, index, words) {
+      word = getHumanWord(word) || word;
+      word = getAcronym(word) || word;
+      var hasPunctuation, isFirstOrLast;
+      var first = index == 0, last = index == words.length - 1;
+      hasPunctuation = fullStopPunctuation.test(word);
+      isFirstOrLast = first || last || hasPunctuation || lastHadPunctuation;
+      lastHadPunctuation = hasPunctuation;
+      if (isFirstOrLast || indexOf(DOWNCASED_WORDS, word) === -1) {
+        return stringCapitalize(word, false, true);
+      } else {
+        return word;
+      }
+    }).join(' ');
   }
 
   defineInstance(sugarString, {
@@ -1234,6 +1379,26 @@
      ***/
     'camelize': function(str, upper) {
       return stringCamelize(str, upper);
+    },
+
+    /***
+     * @method titleize()
+     * @returns String
+     * @short Creates a title version of the string.
+     * @extra Capitalizes all the words and replaces some characters in the string
+     *        to create a nicer looking title. String#titleize is meant for
+     *        creating pretty output.
+     *
+     * @example
+     *
+     *   'man from the boondocks'.titleize() -> 'Man from the Boondocks'
+     *   'x-men: apocalypse'.titleize() -> 'X Men: Apocalypse'
+     *   'TheManWithoutAPast'.titleize() -> 'The Man Without a Past'
+     *   'raiders_of_the_lost_ark'.titleize() -> 'Raiders of the Lost Ark'
+     *
+     ***/
+    'titleize': function(str) {
+      return stringTitleize(str);
     }
 
   });
@@ -1248,6 +1413,67 @@
 
 
   var InflectionSet;
+
+  /***
+   * @method addAcronym(src)
+   * @accessor
+   * @short Adds a new acronym that will be recognized when inflecting strings.
+   * @extra Acronyms are recognized by `camelize`, `underscore`, `dasherize`,
+   *        `titleize`, `humanize`, and `spacify`. `src` must be passed as it
+   *        will appear in a camelized string. Acronyms may contain lower case
+   *        letters but must begin with an upper case letter. Note that to use
+   *        acronyms in conjuction with `pluralize`, the pluralized form of the
+   *        acronym must also be added.
+   *
+   * @example
+   *
+   *   Sugar.String.addAcronym('HTML');
+   *   Sugar.String.addAcronym('API');
+   *   Sugar.String.addAcronym('APIs');
+   *
+   * @param {string} src
+   *
+   ***
+   * @method addPlural(singular, [plural] = singular)
+   * @short Adds a new pluralization rule.
+   * @accessor
+   * @extra Rules are used by `pluralize` and `singularize`. If [singular] is
+   *        a string, then the reciprocal will also be added for singularization.
+   *        If it is a regular expression, capturing groups are allowed for
+   *        [plural]. [plural] defaults to the same as [singular] to allow
+   *        uncountable words.
+   *
+   * @example
+   *
+   *   Sugar.String.addPlural('hashtag', 'hashtaggies');
+   *   Sugar.String.addPlural(/(tag)$/, '$1gies');
+   *   Sugar.String.addPlural('advice');
+   *
+   * @param {string} singular
+   * @param {string} [plural]
+   *
+   ***
+   * @method addHuman(src, human)
+   * @short Adds a new humanization rule.
+   * @accessor
+   * @extra Rules are used by `humanize` and `titleize`. [str] can be either a
+   *        string or a regular expression, in which case [human] can contain
+   *        refences to capturing groups.
+   *
+   * @example
+   *
+   *   Sugar.String.addHuman('src', 'source');
+   *   Sugar.String.addHuman(/_ref/, 'reference');
+   *
+   * @param {string|RegExp} src
+   * @param {string} human
+   *
+   ***/
+  function buildInflectionAccessors() {
+    defineAccessor(sugarString, 'addAcronym', addAcronym);
+    defineAccessor(sugarString, 'addPlural', addPlural);
+    defineAccessor(sugarString, 'addHuman', addHuman);
+  }
 
   function buildInflectionSet() {
 
@@ -1302,6 +1528,8 @@
   // these functions so that common inflections will also be bundled together
   // when these methods are modularized.
   var inflectPlurals;
+
+  var inflectHumans;
 
   function buildCommonPlurals() {
 
@@ -1377,6 +1605,13 @@
 
   }
 
+  function buildCommonHumans() {
+
+    inflectHumans = runHumanRules;
+
+    addHuman(/_id$/g, '');
+  }
+
   function addPlural(singular, plural) {
     plural = plural || singular;
     addInflection('plural', singular, plural);
@@ -1402,6 +1637,31 @@
     forEach(spaceSplit(set), function(str) {
       addPlural(str);
     });
+  }
+
+  function addHuman(src, humanized) {
+    addInflection('human', src, humanized);
+  }
+
+  function addAcronym(str) {
+    addInflection('acronyms', str, str);
+    addInflection('acronyms', str.toLowerCase(), str);
+    buildAcronymReg();
+  }
+
+  function buildAcronymReg() {
+    var tokens = [];
+    forEachProperty(Inflections.acronyms.map, function(val, key) {
+      if (key === val) {
+        tokens.push(val);
+      }
+    });
+    // Sort by length to ensure that tokens
+    // like HTTPS take precedence over HTTP.
+    tokens.sort(function(a, b) {
+      return b.length - a.length;
+    });
+    Inflections.acronyms.reg = RegExp('\\b' + tokens.join('|') + '\\b', 'g');
   }
 
   function addInflection(type, rule, replacement) {
@@ -1436,12 +1696,59 @@
       str = String(str);
       // Reminder that this pretty much holds true only for English.
       return num === 1 || str.length === 0 ? str : inflectPlurals('plural', str);
+    },
+
+    /***
+     * @method singularize()
+     * @returns String
+     * @short Returns the singular form of the last word in the string.
+     *
+     * @example
+     *
+     *   'posts'.singularize()       -> 'post'
+     *   'octopi'.singularize()      -> 'octopus'
+     *   'sheep'.singularize()       -> 'sheep'
+     *   'word'.singularize()        -> 'word'
+     *   'CamelOctopi'.singularize() -> 'CamelOctopus'
+     *
+     ***/
+    'singularize': function(str) {
+      return inflectPlurals('singular', String(str));
+    },
+
+    /***
+     * @method humanize()
+     * @returns String
+     * @short Creates a human readable string.
+     * @extra Capitalizes the first word and turns underscores into spaces and
+     *        strips a trailing '_id', if any. Like `titleize`, this is meant
+     *        for creating pretty output. Rules for special cases can be added
+     *        using `addHuman`.
+     *
+     * @example
+     *
+     *   'employee_salary'.humanize() -> 'Employee salary'
+     *   'author_id'.humanize()       -> 'Author'
+     *
+     ***/
+    'humanize': function(str) {
+      str = inflectHumans(str);
+      str = str.replace(/(_)?([a-z\d]*)/gi, function(match, _, word) {
+        word = getHumanWord(word) || word;
+        word = getAcronym(word) || word.toLowerCase();
+        return (_ ? ' ' : '') + word;
+      });
+      return simpleCapitalize(str);
     }
 
   });
 
+  buildInflectionAccessors();
+
   buildInflectionSet();
 
   buildCommonPlurals();
+
+  buildCommonHumans();
 
 }).call(this);
