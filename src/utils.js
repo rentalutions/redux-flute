@@ -1,6 +1,16 @@
 import Sugar from "./sugar"
 import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
+export function recordDiff(a,b) {
+  if (a instanceof Array && b instanceof Array)
+    return JSON.stringify(a) === JSON.stringify(b);
+  if (a instanceof Date && b instanceof Date)
+    return JSON.stringify(a) === JSON.stringify(b);
+  if (a !== null && typeof a === "object" && b !== null && typeof b === "object")
+    return JSON.stringify(a) === JSON.stringify(b);
+  return a === b;
+}
+
 export function isEmptyObject(obj){
   for (let name in obj) {
     return false;

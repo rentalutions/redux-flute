@@ -1,6 +1,6 @@
 {
   "name": "redux-flute",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Smart front-end data cache manager",
   "main": "dist/index.js",
   "scripts": {

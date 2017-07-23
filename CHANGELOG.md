@@ -1,3 +1,6 @@
+### 0.4.8
+Better diffing of Arrays and Objects
+
 ### 0.4.7
 Added more methods for Sugar.js
 

@@ -7,7 +7,7 @@ import {
   routePermitted, generateRoute,
   interpolateRoute, delimiterType, setReadOnlyProps,
   setWriteableProps, mergeRecordsIntoCache, createThisRecord,
-  objToQueryString
+  objToQueryString, recordDiff
 } from "./utils"
 import { actionMatch, singleRecordProps, recordProps, versioningProps, restVerbs } from "./constants"
 
@@ -87,7 +87,7 @@ export class Flute {
               // TODO: Create a better way to see if the record is from an API, better than checking for if an ID exists
               // as in check for a createdAt instead ....
               useDiffed = this.diffMode && method == "PUT",
-              body = JSON.stringify(useDiffed? diff(pruneDeep(modelInstance.pristineRecord), record) : record),
+              body = JSON.stringify(useDiffed? diff.custom({ equal: recordDiff }, pruneDeep(modelInstance.pristineRecord), record) : record),
               headers = this.apiHeaders,
               credentials = this.apiCredentials;
 
