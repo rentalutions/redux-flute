@@ -67,10 +67,9 @@ export class Flute {
 
     const isIndex = method === "INDEX",
           indexRoute = isIndex ? (routes[method] || routes["GET"]) : null,
-          route = indexRoute || routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, isIndex, singleton),
-          routeQuery = typeof query === "string"? query : query instanceof Object? objToQueryString(query) : "";
+          route = indexRoute || routes[method] || generateRoute(name, method, this.apiDelimiter, this.apiPrefix, isIndex, singleton);
 
-    return interpolateRoute(`${route}${routeQuery}`, record)
+    return interpolateRoute(route, record, query);
   }
 
   saveModel(modelInstance){

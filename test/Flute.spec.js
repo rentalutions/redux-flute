@@ -57,7 +57,7 @@ describe("Flute", ()=>{
     const fluteTest = new Flute();
     class Person extends Model {
       static schema = { name: String, age: Number }
-      static routes = { except: "DELETE", POST: "/correct-route/:id" }
+      static routes = { except: "DELETE", POST: "/correct-route/:id", INDEX: "/correct-route/:special_param/anything" }
     }
     fluteTest.model(Person);;
     it("should throw an error if a forbidden method is attempted", ()=>{
@@ -76,6 +76,15 @@ describe("Flute", ()=>{
       const obj = { cool:"story", bro:"tell", it:"again", search:"Whoa! This was so cooL!<div></div>" },
             queryString = "?cool=story&bro=tell&it=again&search=Whoa!%20This%20was%20so%20cooL!%3Cdiv%3E%3C%2Fdiv%3E"
       expect(`/correct-route/123${queryString}`).to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" }, obj))
+    });
+
+    it("should interpolate routes, yielding to the query object if given", ()=>{
+      const obj = { id: 9999, chuck:"Liddell" }
+      expect("/correct-route/9999?chuck=Liddell").to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" }, obj))
+      expect("/correct-route/9999?chuck=Liddell").to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" }, "?id=9999&chuck=Liddell"))
+      expect("/correct-route/9999?chuck=Liddell").to.equal(fluteTest.getRoute(Person, "POST", { name: "Jim", id:"123" }, "id=9999&chuck=Liddell"))
+      expect("/correct-route/sweet-dude/anything").to.equal(fluteTest.getRoute(Person, "INDEX", null, { special_param: "sweet-dude" }))
+      expect("/correct-route/sweet-dude/anything?awesome=sauce").to.equal(fluteTest.getRoute(Person, "INDEX", null, "?special_param=sweet-dude&awesome=sauce"))
     });
   });
 

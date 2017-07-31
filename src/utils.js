@@ -108,10 +108,24 @@ export function generateRoute(name, method, apiDelimiter, prefix, index=false, i
   return `${prefix}${modelWithDelimiter}${id}`
 }
 
-export function interpolateRoute(route, record) {
-  return route.replace(/:([^\/\?]*)/g, (match, capture)=>(
-    record.hasOwnProperty(capture) && record[capture] ? record[capture] : match
-  ))
+export function interpolateRoute(route, record, initialQuery={}) {
+
+  let query = typeof initialQuery === "string"? queryStringToObj(initialQuery) : initialQuery;
+
+  return route.replace(/:([^\/\?]*)/g, (match, capture)=>{
+
+    const { [capture]:replacement } = query;
+
+    if (replacement) delete query[capture]
+
+    return replacement?
+      replacement
+    :
+      record.hasOwnProperty(capture)?
+        record[capture]
+      :
+        match
+  }) + objToQueryString(query);
 }
 
 export function delimiterType(delim="") {
@@ -276,4 +290,16 @@ export function objToQueryString(obj) {
           value = encodeURIComponent(obj[current]);
     return `${final}${prefix}${key}=${value}`;
   }, "" )
+}
+
+export function queryStringToObj(str) {
+  return str?
+    JSON.parse(
+      `{"${str.replace(/^\?/, "")
+              .replace(/&/g, '","')
+              .replace(/=/g,'":"')}"}`,
+      (k,v) => (k === ""? v : decodeURIComponent(v) )
+    )
+  :
+    {}
 }

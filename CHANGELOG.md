@@ -1,3 +1,15 @@
+### 0.4.9
+Better route interpolation: Added the ability for query object to assist in
+route generation. Passing in string or object as query will override existing
+properties in the record.
+```javascript
+/* (Index route) /units/:unit_id/leads */
+Lead.all({ unit_id: 123 }) /* /units/123/leads */
+Lead.all({ unit_id: 123, foo: "bar" }) /* /units/123/leads?foo=bar */
+Lead.all("?unit_id=123") /* /units/123/leads */
+Lead.all("?unit_id=123&foo=bar") /* /units/123/leads?foo=bar */
+```
+
 ### 0.4.8
 Better diffing of Arrays and Objects
 
