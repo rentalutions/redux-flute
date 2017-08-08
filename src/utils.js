@@ -240,7 +240,7 @@ export function setWriteableProps(params, schema, _obj, flute){
         _obj.record[prop] = initialValue === "false" ? false : Boolean(initialValue)
       }
       set = (newValue)=>{
-        flute.setModel(_obj) //, prop, newValue)
+        /* flute.setModel(_obj, prop, newValue) */
         return _obj.record[prop] = newValue === "false" ? false : Boolean(newValue)
       }
     }

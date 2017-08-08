@@ -1,3 +1,6 @@
+### 0.5.01
+Fixed a bug that would still dispatch a `SET` event.
+
 ## 0.5.0
 Removed an unnecessary action dispatch every time an attribute changed. 
 
