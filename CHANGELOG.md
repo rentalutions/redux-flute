@@ -1,3 +1,6 @@
+## 0.5.0
+Removed an unnecessary action dispatch every time an attribute changed. 
+
 ### 0.4.9
 Better route interpolation: Added the ability for query object to assist in
 route generation. Passing in string or object as query will override existing

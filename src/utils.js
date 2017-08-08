@@ -223,7 +223,7 @@ export function setWriteableProps(params, schema, _obj, flute){
     // @TODO: The set function should dispatch an action that something was set, which
     // would be used to increase the version number, and thus invalidate errors
     let set = (newValue)=>{
-      flute.setModel(_obj) //, prop, newValue)
+      /* flute.setModel(_obj, prop, newValue) */
       return _obj.record[prop] = newValue
     }
 
