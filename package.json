@@ -10,20 +10,8 @@
     "dist-watch": "babel -w -d dist src",
     "prepublish": "babel -d dist src"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kyleramirez/redux-flute.git"
-  },
-  "keywords": [
-    "models",
-    "cache"
-  ],
   "author": "Kyle Ramirez",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/kyleramirez/redux-flute/issues"
-  },
-  "homepage": "https://github.com/kyleramirez/redux-flute#readme",
   "devDependencies": {
     "babel-cli": "^6.18.0",
     "babel-core": "^6.18.2",
