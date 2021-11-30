@@ -1,6 +1,6 @@
 {
   "name": "redux-flute",
-  "version": "0.5.01",
+  "version": "0.5.1",
   "description": "Smart front-end data cache manager",
   "main": "dist/index.js",
   "scripts": {
@@ -9,10 +9,6 @@
     "dist": "babel -d dist src",
     "dist-watch": "babel -w -d dist src",
     "prepublish": "babel -d dist src"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kyleramirez/redux-flute.git"
   },
   "keywords": [
     "models",
