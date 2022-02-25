@@ -30,7 +30,7 @@
     "mocha": "^3.1.2"
   },
   "dependencies": {
-    "es6-promise": "^4.0.5",
+    "es6-promise": "^4.2.8",
     "object-diff": "^0.0.4",
     "whatwg-fetch": "^1.0.0"
   }
